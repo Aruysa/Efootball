@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eFootball Squad & Match Tracker</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        efDarkBg: '#090d16',
+                        efPitchBg: '#0f2419',
+                        efGold: '#d9b44a',
+                        efNeonCyan: '#00f3ff',
+                        efNeonGreen: '#39ff14',
+                        efPink: '#ff007f',
+                        efCardGray: '#1c2436',
+                        efCardEpic: '#ffd700',
+                        efCardHighlight: '#a855f7'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #070a13;
+            padding-bottom: 75px; 
+        }
+        @media (min-width: 768px) {
+            body {
+                padding-bottom: 20px;
+            }
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .pitch-outline {
+            border: 2px solid rgba(255, 255, 255, 0.15);
+        }
+        .pitch-line {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+        .pitch-circle {
+            border: 2px solid rgba(255, 255, 255, 0.15);
+        }
+        .card-epic {
+            border: 2px solid #ffd700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+            background: linear-gradient(135deg, #1c2436 0%, #3a2e05 100%);
+        }
+        .card-bigtime {
+            border: 2px solid #ef4444;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+            background: linear-gradient(135deg, #1c2436 0%, #450a0a 100%);
+        }
+        .card-showtime {
+            border: 2px solid #00f3ff;
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
+            background: linear-gradient(135deg, #1c2436 0%, #083344 100%);
+        }
+        .card-highlight {
+            border: 2px solid #c084fc;
+            box-shadow: 0 0 10px rgba(192, 132, 252, 0.3);
+            background: linear-gradient(135deg, #1c2436 0%, #3b0764 100%);
+        }
+        .card-trending {
+            border: 2px solid #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+            background: linear-gradient(135deg, #1c2436 0%, #064e3b 100%);
+        }
+        .card-base {
+            border: 1px solid #475569;
+            background: #1e293b;
+        }
+        .mobile-tap-target {
+            -webkit-tap-highlight-color: transparent;
+        }
+        [v-cloak] {
+            display: none;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen mobile-tap-target">
+
+    <div id="app" class="flex flex-col min-h-screen pb-16 md:pb-12" v-cloak>
+        
+        <!-- Header / Desktop Navigation Bar -->
+        <header class="sticky top-0 z-40 bg-slate-900/95 border-b border-slate-800 backdrop-blur-md px-4 py-3">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="bg-gradient-to-tr from-yellow-400 via-pink-500 to-indigo-600 p-2 rounded-xl shadow-lg">
+                        <i class="fa-solid fa-circle-nodes text-xl text-white animate-pulse"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-base md:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                            eFootball Mobile <span class="text-[10px] md:text-xs bg-cyan-500 text-slate-900 px-2 py-0.5 rounded-full font-bold">PRO SQUAD</span>
+                        </h1>
+                        <p class="text-[10px] md:text-xs text-slate-400">Manage 11 Starters, 12 Subs, and view performance trends</p>
+                    </div>
+                </div>
+                
+                <!-- Desktop Tab Navigation -->
+                <nav class="hidden md:flex flex-wrap gap-2">
+                    <button 
+                        @click="currentTab = 'squad'" 
+                        :class="currentTab === 'squad' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'"
+                        class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2">
+                        <i class="fa-solid fa-users"></i> Squad Builder
+                    </button>
+                    <button 
+                        @click="currentTab = 'log-match'" 
+                        :class="currentTab === 'log-match' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'"
+                        class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2">
+                        <i class="fa-solid fa-file-pen"></i> Log Match
+                    </button>
+                    <button 
+                        @click="currentTab = 'history'" 
+                        :class="currentTab === 'history' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'"
+                        class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Match History
+                    </button>
+                    <button 
+                        @click="currentTab = 'analytics'" 
+                        :class="currentTab === 'analytics' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'"
+                        class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line"></i> Analytics
+                    </button>
+                    <button 
+                        @click="currentTab = 'sync'" 
+                        :class="currentTab === 'sync' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'"
+                        class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Sync & Backup
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Mobile Bottom Navigation Bar -->
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 border-t border-slate-800 backdrop-blur-lg z-50 flex justify-around py-2 px-3 pb-safe shadow-2xl">
+            <button 
+                @click="currentTab = 'squad'" 
+                :class="currentTab === 'squad' ? 'text-indigo-400 font-bold' : 'text-slate-400'"
+                class="flex flex-col items-center gap-1 text-[10px] transition duration-150 py-1 flex-1">
+                <i class="fa-solid fa-users text-lg"></i>
+                <span>Squad</span>
+            </button>
+            <button 
+                @click="currentTab = 'log-match'" 
+                :class="currentTab === 'log-match' ? 'text-indigo-400 font-bold' : 'text-slate-400'"
+                class="flex flex-col items-center gap-1 text-[10px] transition duration-150 py-1 flex-1">
+                <i class="fa-solid fa-file-pen text-lg"></i>
+                <span>Log</span>
+            </button>
+            <button 
+                @click="currentTab = 'history'" 
+                :class="currentTab === 'history' ? 'text-indigo-400 font-bold' : 'text-slate-400'"
+                class="flex flex-col items-center gap-1 text-[10px] transition duration-150 py-1 flex-1">
+                <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+                <span>History</span>
+            </button>
+            <button 
+                @click="currentTab = 'analytics'" 
+                :class="currentTab === 'analytics' ? 'text-indigo-400 font-bold' : 'text-slate-400'"
+                class="flex flex-col items-center gap-1 text-[10px] transition duration-150 py-1 flex-1">
+                <i class="fa-solid fa-chart-line text-lg"></i>
+                <span>Stats</span>
+            </button>
+            <button 
+                @click="currentTab = 'sync'" 
+                :class="currentTab === 'sync' ? 'text-indigo-400 font-bold' : 'text-slate-400'"
+                class="flex flex-col items-center gap-1 text-[10px] transition duration-150 py-1 flex-1">
+                <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
+                <span>Sync</span>
+            </button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 mt-4 md:mt-6">
+            
+            <!-- Alert/Notification Banner -->
+            <div v-if="notification" :class="notification.type === 'success' ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300' : (notification.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-300' : 'bg-slate-900 border-slate-700 text-slate-300')" class="mb-4 p-3 md:p-4 rounded-xl border flex items-center justify-between shadow-lg transition-all duration-300">
+                <div class="flex items-center gap-2 md:gap-3">
+                    <i :class="notification.type === 'success' ? 'fa-solid fa-circle-check text-emerald-400' : 'fa-solid fa-circle-exclamation text-rose-400'" class="text-base md:text-xl"></i>
+                    <p class="text-xs md:text-sm font-medium">{{ notification.message }}</p>
+                </div>
+                <button @click="notification = null" class="hover:text-white transition p-1"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Firebase Active Syncing Banner -->
+            <div v-if="isCloudSyncing" class="mb-4 p-3 rounded-xl bg-blue-950/80 border border-blue-500 text-blue-300 flex items-center gap-3">
+                <i class="fa-solid fa-rotate text-sm animate-spin"></i>
+                <span class="text-xs">Saving your latest updates securely to Cloud Storage...</span>
+            </div>
+
+            <div v-show="currentTab === 'squad'" class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+                
+                <!-- Left Pitch Section (7 cols) -->
+                <div class="lg:col-span-7 flex flex-col gap-4">
+                    <div class="bg-slate-900 p-3 md:p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-3 md:gap-4">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <div>
+                                <h2 class="text-base md:text-xl font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-square-poll-vertical text-green-400"></i> Active Formation
+                                </h2>
+                                <p class="text-[10px] md:text-xs text-slate-400">Tap cards below to edit details</p>
+                            </div>
+                            <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                                <div class="flex items-center gap-1.5">
+                                    <label class="text-[10px] font-bold uppercase text-slate-400">Form:</label>
+                                    <select 
+                                        v-model="selectedFormation" 
+                                        @change="saveState"
+                                        class="bg-slate-800 text-xs border border-slate-700 text-white px-2.5 py-1.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                                        <option v-for="form in Object.keys(formations)" :key="form" :value="form">{{ form }}</option>
+                                    </select>
+                                </div>
+                                <button 
+                                    @click="toggleHeatmap" 
+                                    class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition flex items-center gap-1"
+                                    :class="showHeatmap ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'">
+                                    <i class="fa-solid fa-fire-flame-curved"></i> {{ showHeatmap ? 'Heatmap' : 'Ratings' }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Football Pitch Visualizer -->
+                        <div class="relative bg-gradient-to-b from-green-900 to-emerald-950 aspect-[3/4] md:aspect-[4/5] w-full rounded-xl overflow-hidden shadow-inner border-2 border-emerald-800">
+                            <div class="absolute inset-2 md:inset-4 pitch-outline rounded-lg pointer-events-none"></div>
+                            <div class="absolute inset-y-2 md:inset-y-4 left-1/2 -translate-x-1/2 w-[2px] pitch-line pointer-events-none"></div>
+                            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 md:w-28 md:h-28 rounded-full pitch-circle pointer-events-none"></div>
+                            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-slate-200/20 pointer-events-none"></div>
+                            <div class="absolute top-2 md:top-4 left-1/2 -translate-x-1/2 w-1/2 h-1/6 border-b-2 border-x-2 border-white/15 pointer-events-none"></div>
+                            <div class="absolute top-2 md:top-4 left-1/2 -translate-x-1/2 w-1/4 h-1/12 border-b-2 border-x-2 border-white/10 pointer-events-none"></div>
+                            <div class="absolute bottom-2 md:bottom-4 left-1/2 -translate-x-1/2 w-1/2 h-1/6 border-t-2 border-x-2 border-white/15 pointer-events-none"></div>
+                            <div class="absolute bottom-2 md:bottom-4 left-1/2 -translate-x-1/2 w-1/4 h-1/12 border-t-2 border-x-2 border-white/10 pointer-events-none"></div>
+
+                            <!-- Starters Cards Layer -->
+                            <div 
+                                v-for="(p, idx) in starters" 
+                                :key="p.id" 
+                                :style="{ top: getPositionStyle(idx).top, left: getPositionStyle(idx).left }"
+                                @click="openEditPlayerModal(idx)"
+                                class="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 hover:scale-110 active:scale-95 z-10 w-14 sm:w-20 lg:w-24 text-center">
+                                
+                                <div 
+                                    :class="[getCardClass(p), showHeatmap ? getRatingColorClass(p.averageRating) : '']"
+                                    class="relative aspect-[3/4] p-1 rounded-lg flex flex-col justify-between items-center text-slate-100 shadow-md">
+                                    
+                                    <!-- Position Bubble -->
+                                    <span class="absolute -top-1 -left-1 text-[8px] sm:text-[9px] font-extrabold px-1 sm:px-1.5 py-0.5 rounded-full shadow-md bg-slate-950 text-indigo-400">
+                                        {{ p.position }}
+                                    </span>
+
+                                    <!-- Rating Badge -->
+                                    <span class="absolute -top-1 -right-1 text-[8px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full shadow-md"
+                                        :class="p.averageRating > 0 ? getRatingBadgeColor(p.averageRating) : 'bg-slate-800 text-slate-400'">
+                                        {{ p.averageRating > 0 ? p.averageRating.toFixed(1) : '-' }}
+                                    </span>
+
+                                    <!-- eFootball Icon -->
+                                    <div class="mt-1 flex items-center justify-center">
+                                        <i class="fa-solid" :class="getCardIcon(p.cardType) + ' text-[9px] sm:text-xs text-yellow-400 opacity-80'"></i>
+                                    </div>
+
+                                    <!-- Player Name & Playstyle -->
+                                    <div class="w-full text-center mt-auto">
+                                        <div class="text-[8px] sm:text-[10px] font-bold tracking-tight truncate leading-tight uppercase text-white drop-shadow-md">
+                                            {{ p.name }}
+                                        </div>
+                                        <div class="text-[7px] sm:text-[8px] font-medium text-slate-300 truncate opacity-90 leading-tight hidden sm:block">
+                                            {{ p.playstyle || 'No Playstyle' }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Mini stats bar -->
+                                    <div class="w-full flex items-center justify-around text-[7px] sm:text-[8px] text-slate-400 mt-0.5 pt-0.5 border-t border-slate-700/50">
+                                        <span><i class="fa-solid fa-shirt text-[6px] sm:text-[7px]"></i> {{ p.matchesPlayed || 0 }}</span>
+                                        <span v-if="p.goals > 0" class="text-amber-500 font-semibold"><i class="fa-solid fa-soccer-ball text-[6px]"></i> {{ p.goals }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Substitutes Panel -->
+                <div class="lg:col-span-5 flex flex-col gap-4 md:gap-6">
+                    <div class="bg-slate-900 p-4 md:p-5 rounded-2xl border border-slate-800 shadow-xl">
+                        <div class="flex items-center justify-between mb-3 md:mb-4">
+                            <div>
+                                <h2 class="text-base md:text-xl font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-chair text-amber-400"></i> Substitutes (12)
+                                </h2>
+                                <p class="text-[10px] md:text-xs text-slate-400">Bench players eligible for swapping</p>
+                            </div>
+                            <div class="text-[10px] md:text-xs font-semibold px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-full text-indigo-400">
+                                {{ substitutes.length }} / 12
+                            </div>
+                        </div>
+
+                        <!-- Subs Scroll Grid -->
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[300px] md:max-h-[420px] overflow-y-auto pr-1">
+                            <div 
+                                v-for="(p, idx) in substitutes" 
+                                :key="p.id" 
+                                @click="openEditPlayerModal(11 + idx)"
+                                class="bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 rounded-xl p-2.5 text-center cursor-pointer relative group transition-all duration-200">
+                                
+                                <span class="absolute top-1.5 left-1.5 text-[7px] sm:text-[8px] font-black uppercase text-slate-400 bg-slate-950 px-1.5 py-0.5 rounded-md">
+                                    {{ p.position }}
+                                </span>
+
+                                <span class="absolute top-1.5 right-1.5 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+                                    :class="p.averageRating > 0 ? getRatingBadgeColor(p.averageRating) : 'bg-slate-900 text-slate-500'">
+                                    {{ p.averageRating > 0 ? p.averageRating.toFixed(1) : '-' }}
+                                </span>
+
+                                <div class="w-full flex justify-center my-1.5">
+                                    <div class="w-2 h-2 rounded-full" :style="{ backgroundColor: getCardGlowColor(p.cardType) }"></div>
+                                </div>
+
+                                <div class="font-bold text-xs truncate text-white leading-tight mt-1">{{ p.name }}</div>
+                                <div class="text-[8px] sm:text-[9px] text-slate-400 truncate mt-0.5">{{ p.playstyle || 'No Playstyle' }}</div>
+                                
+                                <div class="flex items-center justify-center gap-1.5 text-[8px] sm:text-[9px] text-slate-500 mt-1.5 border-t border-slate-700/50 pt-1.5">
+                                    <span>GP: {{ p.matchesPlayed || 0 }}</span>
+                                    <span v-if="p.goals > 0" class="text-amber-500 font-semibold">G: {{ p.goals }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Operations panel -->
+                    <div class="bg-slate-900 p-4 md:p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-3">
+                        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Quick Squad Actions</h3>
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <button 
+                                @click="loadSampleSquad" 
+                                class="bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-800 text-indigo-300 text-xs font-semibold py-2 px-3 rounded-lg transition duration-150 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Load Meta Squad
+                            </button>
+                            <button 
+                                @click="resetSquad" 
+                                class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900 text-rose-300 text-xs font-semibold py-2 px-3 rounded-lg transition duration-150 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-trash-can"></i> Reset All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log Match View -->
+            <div v-show="currentTab === 'log-match'" class="max-w-4xl mx-auto bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+                <div class="bg-gradient-to-r from-slate-900 to-indigo-950 p-4 md:p-6 border-b border-slate-800">
+                    <h2 class="text-lg md:text-2xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-file-pen text-indigo-400"></i> Record Match Stats & Ratings
+                    </h2>
+                    <p class="text-xs md:text-sm text-slate-400">Input ratings, goals, and assists for the match. Only active/subbed players affect averages.</p>
+                </div>
+
+                <form @submit.prevent="saveMatch" class="p-4 md:p-6 space-y-5 md:space-y-6">
+                    <!-- Match Metadata Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1.5">Opponent Team</label>
+                            <input 
+                                v-model="matchForm.opponent" 
+                                type="text" 
+                                required
+                                placeholder="e.g. Div 1 Opponent"
+                                class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1.5">Game Type</label>
+                            <select 
+                                v-model="matchForm.matchType" 
+                                class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="eFootball League">eFootball League</option>
+                                <option value="Online Event">Online Event</option>
+                                <option value="Friend Match">Friend Match</option>
+                                <option value="AI Campaign">AI Campaign</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Your Score Mobile Stepper -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1.5">Your Score</label>
+                            <div class="flex items-center">
+                                <button 
+                                    type="button"
+                                    @click="matchForm.ourScore = Math.max(0, matchForm.ourScore - 1)"
+                                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-3 py-2 border border-slate-700 rounded-l-lg h-9 w-10 flex items-center justify-center transition active:bg-slate-600">-</button>
+                                <input 
+                                    v-model.number="matchForm.ourScore" 
+                                    type="number" 
+                                    min="0" 
+                                    required
+                                    class="w-full bg-slate-800/50 border-y border-slate-700 text-white text-center text-sm font-extrabold h-9 focus:outline-none">
+                                <button 
+                                    type="button"
+                                    @click="matchForm.ourScore++"
+                                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-3 py-2 border border-slate-700 rounded-r-lg h-9 w-10 flex items-center justify-center transition active:bg-slate-600">+</button>
+                            </div>
+                        </div>
+
+                        <!-- Opponent Score Mobile Stepper -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1.5">Opponent Score</label>
+                            <div class="flex items-center">
+                                <button 
+                                    type="button"
+                                    @click="matchForm.oppScore = Math.max(0, matchForm.oppScore - 1)"
+                                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-3 py-2 border border-slate-700 rounded-l-lg h-9 w-10 flex items-center justify-center transition active:bg-slate-600">-</button>
+                                <input 
+                                    v-model.number="matchForm.oppScore" 
+                                    type="number" 
+                                    min="0" 
+                                    required
+                                    class="w-full bg-slate-800/50 border-y border-slate-700 text-white text-center text-sm font-extrabold h-9 focus:outline-none">
+                                <button 
+                                    type="button"
+                                    @click="matchForm.oppScore++"
+                                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-3 py-2 border border-slate-700 rounded-r-lg h-9 w-10 flex items-center justify-center transition active:bg-slate-600">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STARTERS Section -->
+                    <div>
+                        <h3 class="text-xs md:text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 pb-1.5 border-b border-slate-800 flex items-center justify-between">
+                            <span>Starting XI</span>
+                            <span class="text-[9px] md:text-xs text-indigo-400 normal-case font-medium">Ratings: 4.0 to 9.0</span>
+                        </h3>
+                        <div class="space-y-2.5">
+                            <template v-for="(p, index) in starters" :key="'log-starter-'+p.id">
+                                <div 
+                                    v-if="matchForm.ratings && matchForm.ratings[p.id]"
+                                    class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-800/40 p-3 rounded-xl border border-slate-800/80 hover:bg-slate-800/80 transition duration-150">
+                                    
+                                    <div class="md:col-span-3 flex items-center justify-between md:justify-start gap-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[9px] md:text-xs font-extrabold px-2 py-0.5 rounded-md bg-indigo-900/40 text-indigo-400 w-11 text-center shrink-0">
+                                                {{ p.position }}
+                                            </span>
+                                            <span class="font-semibold text-white truncate text-xs md:text-sm">{{ p.name }}</span>
+                                        </div>
+                                        <div class="md:hidden flex items-center gap-1.5">
+                                            <span class="text-[10px] text-slate-400">Played</span>
+                                            <input 
+                                                type="checkbox" 
+                                                v-model="matchForm.ratings[p.id].played"
+                                                class="w-5 h-5 text-indigo-600 bg-slate-900 border-slate-700 rounded focus:ring-indigo-500 focus:ring-2">
+                                        </div>
+                                    </div>
+
+                                    <!-- Played check for desktop -->
+                                    <div class="hidden md:col-span-2 md:flex items-center gap-2">
+                                        <input 
+                                            type="checkbox" 
+                                            v-model="matchForm.ratings[p.id].played"
+                                            class="w-5 h-5 text-indigo-600 bg-slate-900 border-slate-700 rounded focus:ring-indigo-500 focus:ring-2">
+                                        <span class="text-xs text-slate-300">Started Match</span>
+                                    </div>
+
+                                    <!-- Rating Slider & Value -->
+                                    <div class="md:col-span-4 flex items-center justify-between md:justify-start gap-3" v-if="matchForm.ratings[p.id].played">
+                                        <span class="text-xs text-slate-400 shrink-0">Rating:</span>
+                                        <div class="flex-grow flex items-center gap-2 px-1">
+                                            <input 
+                                                type="range" 
+                                                min="3.5" 
+                                                max="9.0" 
+                                                step="0.5" 
+                                                v-model.number="matchForm.ratings[p.id].rating"
+                                                class="w-full h-2.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                                        </div>
+                                        <span class="text-xs font-bold px-2 py-1 rounded w-10 text-center"
+                                            :class="getRatingBadgeColor(matchForm.ratings[p.id].rating)">
+                                            {{ matchForm.ratings[p.id].rating }}
+                                        </span>
+                                    </div>
+                                    <div class="md:col-span-4 text-xs text-slate-500 italic" v-else>
+                                        Did not play in this game
+                                    </div>
+
+                                    <!-- G/A Stats (Touch buttons for steppers) -->
+                                    <div class="md:col-span-3 flex items-center gap-3 justify-end" v-if="matchForm.ratings[p.id].played">
+                                        <div class="flex items-center gap-1.5">
+                                            <label class="text-[9px] uppercase font-bold text-slate-400">Goals</label>
+                                            <div class="flex items-center">
+                                                <button 
+                                                    type="button" 
+                                                    @click="matchForm.ratings[p.id].goals = Math.max(0, matchForm.ratings[p.id].goals - 1)"
+                                                    class="bg-slate-700 text-white rounded-l w-6 h-6 flex items-center justify-center font-bold text-xs">-</button>
+                                                <span class="w-7 bg-slate-900 border-y border-slate-700 text-center text-xs py-0.5 font-bold text-white">{{ matchForm.ratings[p.id].goals }}</span>
+                                                <button 
+                                                    type="button" 
+                                                    @click="matchForm.ratings[p.id].goals++"
+                                                    class="bg-slate-700 text-white rounded-r w-6 h-6 flex items-center justify-center font-bold text-xs">+</button>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <label class="text-[9px] uppercase font-bold text-slate-400">Asst</label>
+                                            <div class="flex items-center">
+                                                <button 
+                                                    type="button" 
+                                                    @click="matchForm.ratings[p.id].assists = Math.max(0, matchForm.ratings[p.id].assists - 1)"
+                                                    class="bg-slate-700 text-white rounded-l w-6 h-6 flex items-center justify-center font-bold text-xs">-</button>
+                                                <span class="w-7 bg-slate-900 border-y border-slate-700 text-center text-xs py-0.5 font-bold text-white">{{ matchForm.ratings[p.id].assists }}</span>
+                                                <button 
+                                                    type="button" 
+                                                    @click="matchForm.ratings[p.id].assists++"
+                                                    class="bg-slate-700 text-white rounded-r w-6 h-6 flex items-center justify-center font-bold text-xs">+</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- SUBSTITUTES Section -->
+                    <div>
+                        <h3 class="text-xs md:text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 pb-1.5 border-b border-slate-800">
+                            Substitutes (Check to mark as "Subbed In")
+                        </h3>
+                        <div class="space-y-2.5">
+                            <template v-for="(p, index) in substitutes" :key="'log-sub-'+p.id">
+                                <div 
+                                    v-if="matchForm.ratings && matchForm.ratings[p.id]"
+                                    class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-800/40 p-3 rounded-xl border border-slate-800/80 hover:bg-slate-800/80 transition duration-150"
+                                    :class="matchForm.ratings[p.id].played ? 'border-indigo-500/50 bg-slate-800' : ''">
+                                    
+                                    <div class="md:col-span-3 flex items-center justify-between md:justify-start gap-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[9px] md:text-xs font-extrabold px-2 py-0.5 rounded-md bg-slate-700/60 text-slate-300 w-11 text-center shrink-0">
+                                                {{ p.position }}
+                                            </span>
+                                            <span class="font-semibold text-white truncate text-xs md:text-sm">{{ p.name }}</span>
+                                        </div>
+                                        <div class="md:hidden flex items-center gap-1.5">
+                                            <span class="text-[10px] text-emerald-400" v-if="matchForm.ratings[p.id].played">Subbed In</span>
+                                            <span class="text-[10px] text-slate-400" v-else>Bench</span>
+                                            <input 
+                                                type="checkbox" 
+                                                v-model="matchForm.ratings[p.id].played"
+                                                class="w-5 h-5 text-emerald-600 bg-slate-900 border-slate-700 rounded focus:ring-emerald-500 focus:ring-2">
+                                        </div>
+                                    </div>
+
+                                    <!-- Played checkbox for desktop -->
+                                    <div class="hidden md:col-span-2 md:flex items-center gap-2">
+                                        <input 
+                                            type="checkbox" 
+                                            v-model="matchForm.ratings[p.id].played"
+                                            class="w-5 h-5 text-emerald-600 bg-slate-900 border-slate-700 rounded focus:ring-emerald-500 focus:ring-2">
+                                        <span class="text-xs text-emerald-400 font-medium" v-if="matchForm.ratings[p.id].played">Subbed In</span>
+                                        <span class="text-xs text-slate-400" v-else>On Bench</span>
+                                    </div>
+
+                                    <!-- Rating Slider & Value -->
+                                    <div class="md:col-span-4 flex items-center justify-between md:justify-start gap-3" v-if="matchForm.ratings[p.id].played">
+                                        <span class="text-xs text-slate-400 shrink-0">Rating:</span>
+                                        <div class="flex-grow flex items-center gap-2 px-1">
+                                            <input 
+                                                type="range" 
+                                                min="3.5" 
+                                                max="9.0" 
+                                                step="0.5" 
+                                                v-model.number="matchForm.ratings[p.id].rating"
+                                                class="w-full h-2.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                                        </div>
+                                        <span class="text-xs font-bold px-2 py-1 rounded w-10 text-center"
+                                            :class="getRatingBadgeColor(matchForm.ratings[p.id].rating)">
+                                            {{ matchForm.ratings[p.id].rating }}
+                                        </span>
+                                    </div>
+                                    <div class="md:col-span-4 text-xs text-slate-500 italic" v-else>
+                                        Benchwarmer / Unused sub
+                                    </div>
+
+                                    <!-- G/A Stats (Touch steppers) -->
+                                    <div class="md:col-span-3 flex items-center gap-3 justify-end" v-if="matchForm.ratings[p.id].played">
+                                        <div class="flex items-center gap-1.5">
+                                            <label class="text-[9px] uppercase font-bold text-slate-400">Goals</label>
+                                            <div class="flex items-center">
+                                                <button 
+                                                    type="button" 
+                                                    @click="matchForm.ratings[p.id].goals = Math.max(0, matchForm.ratings[p.id].goals - 1)"
+                                                    class="bg-slate-700 text-white rounded-l w-6 h-6 flex items-center justify-center font-bold text-xs">-</button>
+                                                <span class="w-7 bg-slate-900 border-y border-slate-700 text-center text-xs py-0.5 font-bold text-white">{{ matchForm.ratings[p.id].goals }}</span>
+                                                <button 
+                                                    type="button" 
+                                                    @click="matchForm.ratings[p.id].goals++"
+                                                    class="bg-slate-700 text-white rounded-r w-6 h-6 flex items-center justify-center font-bold text-xs">+</button>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <label class="text-[9px] uppercase font-bold text-slate-400">Asst</label>
+                                            <div class="flex items-center">
+                                                <button 
+                                                    type="button" 
+                                                    @click="matchForm.ratings[p.id].assists = Math.max(0, matchForm.ratings[p.id].assists - 1)"
+                                                    class="bg-slate-700 text-white rounded-l w-6 h-6 flex items-center justify-center font-bold text-xs">-</button>
+                                                <span class="w-7 bg-slate-900 border-y border-slate-700 text-center text-xs py-0.5 font-bold text-white">{{ matchForm.ratings[p.id].assists }}</span>
+                                                <button 
+                                                    type="button" 
+                                                    @click="matchForm.ratings[p.id].assists++"
+                                                    class="bg-slate-700 text-white rounded-r w-6 h-6 flex items-center justify-center font-bold text-xs">+</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Match Notes -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1.5">Match Notes / Highlights</label>
+                        <textarea 
+                            v-model="matchForm.notes" 
+                            rows="2" 
+                            placeholder="e.g. Rival rage-quit in 70th minute. Epic Messi hattrick."
+                            class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none"></textarea>
+                    </div>
+
+                    <!-- Submit & Reset Buttons -->
+                    <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                        <button 
+                            type="button" 
+                            @click="resetMatchForm" 
+                            class="px-4 py-2 rounded-lg text-xs md:text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition duration-150">
+                            Clear
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="px-5 py-2 rounded-lg text-xs md:text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition duration-150">
+                            Save Match
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Match History View -->
+            <div v-show="currentTab === 'history'" class="max-w-5xl mx-auto space-y-4 md:space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg md:text-2xl font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> Match History Logs
+                        </h2>
+                        <p class="text-xs text-slate-400">Review and inspect tactical performance records</p>
+                    </div>
+                    <div class="text-[10px] md:text-xs bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-slate-400">
+                        Total: <strong class="text-white">{{ matches.length }}</strong>
+                    </div>
+                </div>
+
+                <!-- Match List Empty State -->
+                <div v-if="matches.length === 0" class="bg-slate-900 border border-slate-800 rounded-2xl p-8 md:p-12 text-center">
+                    <div class="w-12 h-12 md:w-16 md:h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-folder-open text-xl md:text-2xl text-slate-500"></i>
+                    </div>
+                    <h3 class="text-base md:text-lg font-bold text-white mb-1">No matches logged yet</h3>
+                    <p class="text-slate-400 text-xs md:text-sm max-w-sm mx-auto mb-4 md:mb-6">Record your first game to track performance trends and ratings.</p>
+                    <button 
+                        @click="currentTab = 'log-match'" 
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs md:text-sm font-semibold rounded-lg transition duration-150">
+                        Record First Match
+                    </button>
+                </div>
+
+                <!-- Match History List Grid -->
+                <div v-else class="space-y-3">
+                    <div 
+                        v-for="(match, index) in matches" 
+                        :key="match.id" 
+                        class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg transition duration-150 hover:border-slate-700">
+                        
+                        <!-- Accordion Header -->
+                        <div 
+                            @click="toggleMatchAccordion(match.id)" 
+                            class="p-3 md:p-5 flex items-center justify-between gap-2.5 cursor-pointer select-none">
+                            
+                            <div class="flex items-center gap-2.5 overflow-hidden">
+                                <span :class="getResultColorClass(match.result)" class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center font-black text-xs md:text-sm uppercase shrink-0 shadow-inner">
+                                    {{ match.result }}
+                                </span>
+                                <div class="overflow-hidden">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <h4 class="font-bold text-white text-sm md:text-base truncate">vs {{ match.opponent }}</h4>
+                                        <span class="text-[9px] md:text-xs bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded text-slate-300">
+                                            {{ match.matchType }}
+                                        </span>
+                                    </div>
+                                    <p class="text-[9px] md:text-xs text-slate-400 mt-0.5">{{ match.date }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Scoreboard -->
+                            <div class="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 shrink-0">
+                                <span class="text-sm md:text-lg font-extrabold" :class="match.result === 'W' ? 'text-emerald-400' : match.result === 'L' ? 'text-rose-500' : 'text-amber-500'">
+                                    {{ match.ourScore }}
+                                </span>
+                                <span class="text-[10px] text-slate-500 font-bold">:</span>
+                                <span class="text-sm md:text-lg font-extrabold text-slate-300">
+                                    {{ match.oppScore }}
+                                </span>
+                            </div>
+
+                            <!-- Controls -->
+                            <div class="flex items-center gap-2">
+                                <button 
+                                    @click.stop="deleteMatch(match.id)" 
+                                    class="text-slate-500 hover:text-rose-400 p-1.5 rounded transition duration-150"
+                                    title="Delete match">
+                                    <i class="fa-regular fa-trash-can text-sm"></i>
+                                </button>
+                                <span class="text-slate-400">
+                                    <i class="fa-solid" :class="expandedMatchId === match.id ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Accordion Detail Drawer -->
+                        <div v-show="expandedMatchId === match.id" class="border-t border-slate-800 bg-slate-950/40 p-4 space-y-3">
+                            <div v-if="match.notes" class="p-3 bg-slate-900 rounded-lg border border-slate-800/80 text-xs text-slate-300">
+                                <strong class="text-indigo-400 text-[10px] block mb-1 uppercase tracking-wider">Coach Notes:</strong>
+                                "{{ match.notes }}"
+                            </div>
+
+                            <!-- Player Ratings details -->
+                            <div>
+                                <h5 class="text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-2">Lineup Ratings</h5>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
+                                    <div 
+                                        v-for="pRating in getActiveRatingsForMatch(match)" 
+                                        :key="pRating.id"
+                                        class="bg-slate-900/60 p-2 rounded-lg border border-slate-800/80 flex items-center justify-between text-xs">
+                                        <div class="flex items-center gap-1.5 overflow-hidden">
+                                            <span class="text-[8px] font-black text-slate-400 bg-slate-950 px-1 py-0.5 rounded leading-none shrink-0 uppercase">
+                                                {{ pRating.position }}
+                                            </span>
+                                            <span class="font-medium text-white truncate text-xs">{{ pRating.name }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <span v-if="pRating.goals > 0" class="text-[9px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded font-black flex items-center gap-0.5">
+                                                <i class="fa-solid fa-soccer-ball text-[7px]"></i> {{ pRating.goals }}
+                                            </span>
+                                            <span v-if="pRating.assists > 0" class="text-[9px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded font-black flex items-center gap-0.5">
+                                                <i class="fa-solid fa-handshake text-[7px]"></i> {{ pRating.assists }}
+                                            </span>
+                                            <span class="text-xs font-extrabold px-1.5 py-0.5 rounded" :class="getRatingBadgeColor(pRating.rating)">
+                                                {{ pRating.rating.toFixed(1) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics View -->
+            <div v-show="currentTab === 'analytics'" class="space-y-6">
+                <!-- Summary KPI Widget Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+                    <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between shadow-lg">
+                        <div>
+                            <p class="text-[9px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Win Ratio</p>
+                            <h3 class="text-lg md:text-2xl font-black text-white mt-0.5">{{ statsSummary.winRatio }}%</h3>
+                            <p class="text-[9px] md:text-xs text-slate-500 mt-0.5 font-medium">{{ statsSummary.wins }}W / {{ statsSummary.draws }}D / {{ statsSummary.losses }}L</p>
+                        </div>
+                        <div class="bg-indigo-950 p-2 md:p-3 rounded-xl text-indigo-400 text-sm md:text-lg"><i class="fa-solid fa-trophy"></i></div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between shadow-lg">
+                        <div>
+                            <p class="text-[9px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Top Goalscorer</p>
+                            <h3 class="text-xs md:text-sm font-bold text-white mt-0.5 truncate max-w-[80px] sm:max-w-[120px]">{{ statsSummary.topScorer.name }}</h3>
+                            <p class="text-[10px] md:text-xs text-emerald-400 font-bold mt-0.5">{{ statsSummary.topScorer.goals }} Goals</p>
+                        </div>
+                        <div class="bg-emerald-950 p-2 md:p-3 rounded-xl text-emerald-400 text-sm md:text-lg"><i class="fa-solid fa-soccer-ball"></i></div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between shadow-lg">
+                        <div>
+                            <p class="text-[9px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Best Playmaker</p>
+                            <h3 class="text-xs md:text-sm font-bold text-white mt-0.5 truncate max-w-[80px] sm:max-w-[120px]">{{ statsSummary.topAssister.name }}</h3>
+                            <p class="text-[10px] md:text-xs text-cyan-400 font-bold mt-0.5">{{ statsSummary.topAssister.assists }} Assists</p>
+                        </div>
+                        <div class="bg-cyan-950 p-2 md:p-3 rounded-xl text-cyan-400 text-sm md:text-lg"><i class="fa-solid fa-handshake"></i></div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between shadow-lg">
+                        <div>
+                            <p class="text-[9px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Highest Rated</p>
+                            <h3 class="text-xs md:text-sm font-bold text-white mt-0.5 truncate max-w-[80px] sm:max-w-[120px]">{{ statsSummary.highestRated.name }}</h3>
+                            <p class="text-[10px] md:text-xs text-yellow-400 font-bold mt-0.5" v-if="statsSummary.highestRated.rating > 0">
+                                ★ {{ statsSummary.highestRated.rating.toFixed(2) }}
+                            </p>
+                            <p class="text-[10px] md:text-xs text-slate-500 mt-0.5" v-else>No data</p>
+                        </div>
+                        <div class="bg-yellow-950 p-2 md:p-3 rounded-xl text-yellow-400 text-sm md:text-lg"><i class="fa-solid fa-star"></i></div>
+                    </div>
+                </div>
+
+                <!-- Graphs & Chart Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Form Trend Chart -->
+                    <div class="lg:col-span-8 bg-slate-900 p-4 md:p-5 rounded-2xl border border-slate-800 shadow-xl">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <h3 class="text-sm md:text-lg font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-chart-line text-green-400"></i> Match Rating Form Trend
+                                </h3>
+                                <p class="text-[10px] md:text-xs text-slate-400">Average match-by-match squad performance rating</p>
+                            </div>
+                        </div>
+                        <div class="relative h-48 sm:h-64 md:h-80 w-full">
+                            <canvas id="formTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Top 5 Performers Chart -->
+                    <div class="lg:col-span-4 bg-slate-900 p-4 md:p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-sm md:text-lg font-bold text-white flex items-center gap-2 mb-1">
+                                <i class="fa-solid fa-medal text-yellow-400"></i> Top 5 MVPs
+                            </h3>
+                            <p class="text-[10px] md:text-xs text-slate-400 mb-3 md:mb-4">Based on lifetime rating average</p>
+                        </div>
+                        <div class="space-y-2.5 flex-grow justify-center flex flex-col">
+                            <div 
+                                v-for="(mvp, index) in topPerformers" 
+                                :key="'mvp-'+mvp.id" 
+                                class="flex items-center justify-between p-2 md:p-2.5 bg-slate-800/50 rounded-xl border border-slate-700/30">
+                                
+                                <div class="flex items-center gap-2 md:gap-3 overflow-hidden">
+                                    <span class="text-[10px] md:text-xs font-black text-indigo-400 bg-slate-950 w-5 h-5 md:w-6 md:h-6 rounded-lg flex items-center justify-center shrink-0">
+                                        {{ index + 1 }}
+                                    </span>
+                                    <div>
+                                        <div class="font-bold text-xs md:text-sm text-white truncate max-w-[100px] sm:max-w-[140px]">{{ mvp.name }}</div>
+                                        <div class="text-[8px] md:text-[10px] text-slate-400 uppercase font-bold">{{ mvp.position }}</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-right">
+                                    <div class="text-[10px] md:text-xs font-extrabold px-1.5 md:px-2 py-0.5 rounded" :class="getRatingBadgeColor(mvp.averageRating)">
+                                        {{ mvp.averageRating.toFixed(2) }}
+                                    </div>
+                                    <div class="text-[8px] md:text-[9px] text-slate-500 mt-0.5">{{ mvp.matchesPlayed }} matches</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Player Stats Table -->
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+                    <div class="p-4 md:p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                            <h3 class="text-sm md:text-lg font-bold text-white">Squad Stats Database</h3>
+                            <p class="text-[10px] md:text-xs text-slate-400 font-medium">All 23 squad members ranked by played history</p>
+                        </div>
+                        <div>
+                            <input 
+                                v-model="squadSearchQuery" 
+                                type="text" 
+                                placeholder="Filter players by name..."
+                                class="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-64">
+                        </div>
+                    </div>
+
+                    <!-- Scrollable Table Body -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs md:text-sm text-slate-300">
+                            <thead class="bg-slate-950 text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-wider border-b border-slate-800">
+                                <tr>
+                                    <th class="px-4 py-3">Player Details</th>
+                                    <th class="px-4 py-3">Pos</th>
+                                    <th class="px-4 py-3 text-center">Matches</th>
+                                    <th class="px-4 py-3 text-center">Goals</th>
+                                    <th class="px-4 py-3 text-center">Assists</th>
+                                    <th class="px-4 py-3 text-right">Avg Rating</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/80">
+                                <tr v-for="p in filteredSquad" :key="'table-p-'+p.id" class="hover:bg-slate-800/30 transition duration-100">
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: getCardGlowColor(p.cardType) }"></div>
+                                            <div class="overflow-hidden">
+                                                <span class="font-bold text-white block truncate max-w-[120px]">{{ p.name }}</span>
+                                                <span class="text-[8px] md:text-[10px] text-slate-500 uppercase font-semibold block truncate max-w-[120px]">{{ p.playstyle || 'No Playstyle' }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="text-[9px] md:text-xs font-extrabold px-1.5 md:px-2.5 py-0.5 md:py-1 bg-slate-800 border border-slate-700 text-indigo-400 rounded">
+                                            {{ p.position }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center font-semibold text-white">{{ p.matchesPlayed }}</td>
+                                    <td class="px-4 py-3 text-center text-amber-500 font-bold">{{ p.goals }}</td>
+                                    <td class="px-4 py-3 text-center text-blue-400 font-bold">{{ p.assists }}</td>
+                                    <td class="px-4 py-3 text-right">
+                                        <span class="text-[10px] md:text-xs font-black px-2 py-0.5 md:py-1 rounded inline-block"
+                                            :class="p.averageRating > 0 ? getRatingBadgeColor(p.averageRating) : 'bg-slate-850 text-slate-500'">
+                                            {{ p.averageRating > 0 ? p.averageRating.toFixed(2) : 'N/A' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cloud Sync & Local Storage Backup Panel -->
+            <div v-show="currentTab === 'sync'" class="max-w-2xl mx-auto space-y-6">
+                <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
+                    <h2 class="text-base md:text-xl font-bold text-white flex items-center gap-2 mb-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-indigo-400"></i> Backup & Storage Settings
+                    </h2>
+                    <p class="text-xs text-slate-400">Keep your eFootball Mobile squad and match history safe from browser resets or phone loss.</p>
+                    
+                    <div class="mt-6 space-y-6">
+                        <!-- Cloud Status Banner -->
+                        <div class="p-4 rounded-xl border flex flex-col sm:flex-row items-center gap-4"
+                             :class="isCloudEnabled ? 'bg-emerald-950/40 border-emerald-500/50' : 'bg-slate-800/60 border-slate-700'">
+                            <div class="text-3xl shrink-0" :class="isCloudEnabled ? 'text-emerald-400' : 'text-slate-500'">
+                                <i class="fa-solid" :class="isCloudEnabled ? 'fa-cloud-arrow-up' : 'fa-triangle-exclamation'"></i>
+                            </div>
+                            <div class="text-center sm:text-left">
+                                <h4 class="text-sm font-bold text-white">{{ isCloudEnabled ? 'Secure Cloud Sync Active' : 'Offline Mode Active' }}</h4>
+                                <p class="text-xs text-slate-400 mt-1">
+                                    {{ isCloudEnabled ? 'Your progress is being synced in real-time. You can access this layout from other screens.' : 'Data is stored in your browser storage only. Create an manual backup below to avoid losing progress.' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Manual JSON Import/Export Backup Tools -->
+                        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-4">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Manual Device Backups</h4>
+                            <p class="text-[11px] text-slate-400">Export your squad/matches to a text file. You can import this file to load your squad on another phone or computer.</p>
+                            
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <button 
+                                    @click="exportSquadBackup" 
+                                    class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold py-2 px-4 rounded-lg flex-1 transition flex items-center justify-center gap-2 shadow-md">
+                                    <i class="fa-solid fa-file-export"></i> Export Backup (.json)
+                                </button>
+                                
+                                <label class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2 px-4 rounded-lg flex-1 transition flex items-center justify-center gap-2 border border-slate-700 cursor-pointer text-center">
+                                    <i class="fa-solid fa-file-import"></i> Import Backup File
+                                    <input type="file" @change="importSquadBackup" class="hidden" accept=".json">
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Reset / Wipe Database Controls -->
+                        <div class="bg-rose-950/10 border border-rose-900/40 p-4 rounded-xl">
+                            <h4 class="text-xs font-bold uppercase text-rose-400 tracking-wider mb-1">Danger Zone</h4>
+                            <p class="text-[11px] text-slate-400 mb-4">Wipes the entire match logger database, returning all starters and subs to default settings.</p>
+                            <button 
+                                @click="resetSquad" 
+                                class="bg-rose-900/30 hover:bg-rose-900/60 border border-rose-800 text-rose-300 text-xs font-semibold py-2 px-4 rounded-lg transition duration-150">
+                                Wipe Application Database
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Edit Player Details Modal -->
+        <div v-show="showEditPlayerModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-sm transition duration-200">
+            <div class="bg-slate-900 border-t sm:border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-2xl overflow-hidden transform transition-all pb-safe">
+                
+                <div class="p-4 border-b border-slate-800 bg-gradient-to-r from-slate-900 to-indigo-950 flex items-center justify-between">
+                    <h3 class="text-sm md:text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-user-pen text-indigo-400"></i> Edit Player Details
+                    </h3>
+                    <button @click="closeEditPlayerModal" class="text-slate-400 hover:text-white transition p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+
+                <!-- Form inside modal -->
+                <form @submit.prevent="savePlayerDetails" class="p-4 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Player Name</label>
+                        <input 
+                            v-model="editForm.name" 
+                            type="text" 
+                            required
+                            placeholder="e.g. L. Messi"
+                            class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Position</label>
+                            <select 
+                                v-model="editForm.position" 
+                                class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option v-for="pos in positionsList" :key="pos" :value="pos">{{ pos }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Card Type</label>
+                            <select 
+                                v-model="editForm.cardType" 
+                                class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="Base">Base Card</option>
+                                <option value="Epic">Epic</option>
+                                <option value="Big Time">Big Time</option>
+                                <option value="Show Time">Show Time</option>
+                                <option value="Highlight">Highlight</option>
+                                <option value="Trending">Trending</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Playstyle Type</label>
+                        <select 
+                            v-model="editForm.playstyle" 
+                            class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="">No Playstyle</option>
+                            <option v-for="style in playstyleList" :key="style" :value="style">{{ style }}</option>
+                        </select>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-800 flex justify-end gap-2.5">
+                        <button 
+                            type="button" 
+                            @click="closeEditPlayerModal" 
+                            class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition duration-150">
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="px-5 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition duration-150">
+                            Apply Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Custom Confirmation Dialog Modal -->
+        <div v-show="showConfirmModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition duration-200">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden transform transition-all p-5 space-y-4">
+                <div class="flex items-center gap-3 text-amber-400">
+                    <i class="fa-solid fa-circle-question text-2xl"></i>
+                    <h3 class="text-base font-bold text-white">{{ confirmTitle }}</h3>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">{{ confirmMessage }}</p>
+                <div class="flex justify-end gap-2.5 pt-2">
+                    <button 
+                        type="button" 
+                        @click="handleConfirmNo" 
+                        class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition duration-150">
+                        Cancel
+                    </button>
+                    <button 
+                        type="button" 
+                        @click="handleConfirmYes" 
+                        class="px-5 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition duration-150">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Firestore Cloud Connection Layer -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
+
+        const defaultStarters = [
+            { id: 1, name: "M. ter Stegen", position: "GK", playstyle: "Offensive Goalkeeper", cardType: "Base", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 2, name: "A. Davies", position: "LB", playstyle: "Full-back Finisher", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 3, name: "Virgil van Dijk", position: "CB", playstyle: "Build Up", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 4, name: "Ronaldo Araujo", position: "CB", playstyle: "The Destroyer", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 5, name: "K. Laimer", position: "RB", playstyle: "Defensive Full-back", cardType: "Base", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 6, name: "Rodri", position: "DMF", playstyle: "Anchor Man", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 7, name: "Kevin De Bruyne", position: "AMF", playstyle: "Creative Playmaker", cardType: "Epic", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 8, name: "F. Valverde", position: "CMF", playstyle: "Box-to-Box", cardType: "Show Time", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 9, name: "K. Mbappé", position: "LWF", playstyle: "Goal Poacher", cardType: "Big Time", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 10, name: "Erling Haaland", position: "CF", playstyle: "Goal Poacher", cardType: "Trending", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 11, name: "Lionel Messi", position: "RWF", playstyle: "Deep-Lying Forward", cardType: "Big Time", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 }
+        ];
+
+        const defaultSubs = [
+            { id: 12, name: "Ederson", position: "GK", playstyle: "Offensive Goalkeeper", cardType: "Base", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 13, name: "J. Gvardiol", position: "CB", playstyle: "Build Up", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 14, name: "Trent A-A", position: "RB", playstyle: "Cross Specialist", cardType: "Show Time", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 15, name: "J. Kimmich", position: "DMF", playstyle: "Orchestrator", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 16, name: "Bernardo Silva", position: "CMF", playstyle: "Creative Playmaker", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 17, name: "Neymar Jr", position: "AMF", playstyle: "Creative Playmaker", cardType: "Epic", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 18, name: "Vinicius Jr", position: "LWF", playstyle: "Prolific Winger", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 19, name: "M. Salah", position: "RWF", playstyle: "Roaming Flank", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 20, name: "L. Martínez", position: "CF", playstyle: "Goal Poacher", cardType: "Trending", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 21, name: "Theo Hernandez", position: "LB", playstyle: "Full-back Finisher", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 22, name: "Ruben Dias", position: "CB", playstyle: "Destroyer", cardType: "Base", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
+            { id: 23, name: "R. Leão", position: "LWF", playstyle: "Prolific Winger", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 }
+        ];
+
+        const formations = {
+            "4-3-3": {
+                0: { top: '85%', left: '50%' }, // GK
+                1: { top: '65%', left: '15%' }, // LB
+                2: { top: '70%', left: '36%' }, // LCB
+                3: { top: '70%', left: '64%' }, // RCB
+                4: { top: '65%', left: '85%' }, // RB
+                5: { top: '48%', left: '50%' }, // DMF
+                6: { top: '38%', left: '26%' }, // LCMF
+                7: { top: '38%', left: '74%' }, // RCMF
+                8: { top: '15%', left: '20%' }, // LWF
+                9: { top: '10%', left: '50%' }, // CF
+                10: { top: '15%', left: '80%' } // RWF
+            },
+            "4-2-1-3": {
+                0: { top: '85%', left: '50%' }, // GK
+                1: { top: '65%', left: '15%' }, // LB
+                2: { top: '70%', left: '36%' }, // LCB
+                3: { top: '70%', left: '64%' }, // RCB
+                4: { top: '65%', left: '85%' }, // RB
+                5: { top: '52%', left: '35%' }, // LDMF
+                6: { top: '52%', left: '65%' }, // RDMF
+                7: { top: '32%', left: '50%' }, // AMF
+                8: { top: '15%', left: '18%' }, // LWF
+                9: { top: '10%', left: '50%' }, // CF
+                10: { top: '15%', left: '82%' } // RWF
+            },
+            "4-4-2": {
+                0: { top: '85%', left: '50%' }, // GK
+                1: { top: '65%', left: '15%' }, // LB
+                2: { top: '70%', left: '36%' }, // LCB
+                3: { top: '70%', left: '64%' }, // RCB
+                4: { top: '65%', left: '85%' }, // RB
+                5: { top: '42%', left: '15%' }, // LMF
+                6: { top: '46%', left: '38%' }, // LCMF
+                7: { top: '46%', left: '62%' }, // RCMF
+                8: { top: '42%', left: '85%' }, // RMF
+                9: { top: '15%', left: '34%' }, // LCF
+                10: { top: '15%', left: '66%' } // RCF
+            },
+            "3-2-4-1": {
+                0: { top: '85%', left: '50%' }, // GK
+                1: { top: '68%', left: '25%' }, // LCB
+                2: { top: '72%', left: '50%' }, // CB
+                3: { top: '68%', left: '75%' }, // RCB
+                4: { top: '52%', left: '35%' }, // LDMF
+                5: { top: '52%', left: '65%' }, // RDMF
+                6: { top: '32%', left: '15%' }, // LMF
+                7: { top: '30%', left: '38%' }, // LAMF
+                8: { top: '30%', left: '62%' }, // RAMF
+                9: { top: '32%', left: '85%' }, // RMF
+                10: { top: '10%', left: '50%' } // CF
+            },
+            "5-3-2": {
+                0: { top: '85%', left: '50%' }, // GK
+                1: { top: '60%', left: '12%' }, // LWB
+                2: { top: '68%', left: '32%' }, // LCB
+                3: { top: '71%', left: '50%' }, // CB
+                4: { top: '68%', left: '68%' }, // RCB
+                5: { top: '60%', left: '88%' }, // RWB
+                6: { top: '42%', left: '30%' }, // LCMF
+                7: { top: '47%', left: '50%' }, // DMF
+                8: { top: '42%', left: '70%' }, // RCMF
+                9: { top: '15%', left: '35%' }, // LCF
+                10: { top: '15%', left: '65%' } // RCF
+            }
+        };
+
+        const positionsList = ["GK", "CB", "LB", "RB", "LWB", "RWB", "DMF", "CMF", "AMF", "LMF", "RMF", "LWF", "RWF", "SS", "CF"];
+        const playstyleList = [
+            "Goal Poacher", "Dummy Runner", "Fox in the Box", "Target Man", "Deep-Lying Forward",
+            "Creative Playmaker", "Prolific Winger", "Roaming Flank", "Cross Specialist", "Classic No. 10",
+            "Hole Player", "Box-to-Box", "The Destroyer", "Anchor Man", "Orchestrator", "Build Up",
+            "Extra Frontman", "Defensive Full-back", "Offensive Full-back", "Full-back Finisher"
+        ];
+
+        createApp({
+            setup() {
+                const currentTab = ref('squad');
+                const squad = ref([...defaultStarters, ...defaultSubs]);
+                const matches = ref([]);
+                const selectedFormation = ref('4-3-3');
+                const showHeatmap = ref(false);
+                const notification = ref(null);
+                const expandedMatchId = ref(null);
+                const squadSearchQuery = ref('');
+
+                // Custom Alert/Confirmation state
+                const showConfirmModal = ref(false);
+                const confirmTitle = ref('');
+                const confirmMessage = ref('');
+                const confirmAction = ref(null);
+
+                // Edit Modal state
+                const showEditPlayerModal = ref(false);
+                const editingPlayerIndex = ref(null);
+                const editForm = ref({ name: '', position: '', cardType: '', playstyle: '' });
+
+                // Match Rating Form
+                const matchForm = ref({
+                    opponent: '',
+                    matchType: 'eFootball League',
+                    ourScore: 0,
+                    oppScore: 0,
+                    notes: '',
+                    ratings: null
+                });
+
+                // Cloud Storage configurations
+                const isCloudEnabled = ref(false);
+                const isCloudSyncing = ref(false);
+                let dbInstance = null;
+                let authInstance = null;
+                let activeUserId = null;
+
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'efootball-squad-tracker';
+
+                // Displaying clean automated toast notifications
+                const showNotification = (type, message) => {
+                    notification.value = { type, message };
+                    setTimeout(() => {
+                        if (notification.value && notification.value.message === message) {
+                            notification.value = null;
+                        }
+                    }, 4000);
+                };
+
+                // Confirm trigger callback handler
+                const triggerConfirm = (title, message, action) => {
+                    confirmTitle.value = title;
+                    confirmMessage.value = message;
+                    confirmAction.value = action;
+                    showConfirmModal.value = true;
+                };
+
+                const handleConfirmYes = () => {
+                    if (confirmAction.value) confirmAction.value();
+                    showConfirmModal.value = false;
+                };
+
+                const handleConfirmNo = () => {
+                    showConfirmModal.value = false;
+                };
+
+                const setupFirebase = async () => {
+                    if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                        try {
+                            const firebaseConfig = JSON.parse(__firebase_config);
+                            const firebaseApp = initializeApp(firebaseConfig);
+                            dbInstance = getFirestore(firebaseApp);
+                            authInstance = getAuth(firebaseApp);
+
+                            let authUser = null;
+                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                authUser = await signInWithCustomToken(authInstance, __initial_auth_token);
+                            } else {
+                                authUser = await signInAnonymously(authInstance);
+                            }
+
+                            if (authUser && authInstance.currentUser) {
+                                activeUserId = authInstance.currentUser.uid;
+                                isCloudEnabled.value = true;
+                                console.log("Firebase Storage Online. User ID:", activeUserId);
+                            }
+                        } catch (err) {
+                            console.error("Firebase connection error:", err);
+                        }
+                    }
+                };
+
+                const loadState = async () => {
+                    let loadedSquad = null;
+                    let loadedMatches = null;
+                    let loadedFormation = null;
+
+                    if (isCloudEnabled.value && dbInstance && activeUserId) {
+                        try {
+                            const squadDocRef = doc(dbInstance, 'artifacts', appId, 'users', activeUserId, 'squad', 'current');
+                            const matchesDocRef = doc(dbInstance, 'artifacts', appId, 'users', activeUserId, 'matches', 'history');
+
+                            const squadSnap = await getDoc(squadDocRef);
+                            const matchesSnap = await getDoc(matchesDocRef);
+
+                            if (squadSnap.exists()) {
+                                const data = squadSnap.data();
+                                loadedSquad = data.squad;
+                                loadedFormation = data.formation || '4-3-3';
+                            }
+                            if (matchesSnap.exists()) {
+                                loadedMatches = matchesSnap.data().matches;
+                            }
+                        } catch (err) {
+                            console.error("Error reading cloud data:", err);
+                        }
+                    }
+
+                    if (!loadedSquad) {
+                        const savedSquad = localStorage.getItem('ef_squad_v2');
+                        if (savedSquad) loadedSquad = JSON.parse(savedSquad);
+                    }
+                    if (!loadedMatches) {
+                        const savedMatches = localStorage.getItem('ef_matches_v2');
+                        if (savedMatches) loadedMatches = JSON.parse(savedMatches);
+                    }
+                    if (!loadedFormation) {
+                        loadedFormation = localStorage.getItem('ef_formation_v2') || '4-3-3';
+                    }
+
+                    squad.value = loadedSquad || [...defaultStarters, ...defaultSubs];
+                    matches.value = loadedMatches || [];
+                    selectedFormation.value = loadedFormation;
+                    
+                    initMatchForm();
+                };
+
+                const saveState = async () => {
+                    localStorage.setItem('ef_squad_v2', JSON.stringify(squad.value));
+                    localStorage.setItem('ef_matches_v2', JSON.stringify(matches.value));
+                    localStorage.setItem('ef_formation_v2', selectedFormation.value);
+
+                    if (isCloudEnabled.value && dbInstance && activeUserId) {
+                        try {
+                            isCloudSyncing.value = true;
+                            const squadDocRef = doc(dbInstance, 'artifacts', appId, 'users', activeUserId, 'squad', 'current');
+                            const matchesDocRef = doc(dbInstance, 'artifacts', appId, 'users', activeUserId, 'matches', 'history');
+
+                            await setDoc(squadDocRef, {
+                                squad: squad.value,
+                                formation: selectedFormation.value,
+                                lastUpdated: new Date().toISOString()
+                            });
+
+                            await setDoc(matchesDocRef, {
+                                matches: matches.value,
+                                lastUpdated: new Date().toISOString()
+                            });
+                        } catch (err) {
+                            console.error("Error writing cloud data:", err);
+                        } finally {
+                            isCloudSyncing.value = false;
+                        }
+                    }
+                };
+
+                const starters = computed(() => squad.value.slice(0, 11));
+                const substitutes = computed(() => squad.value.slice(11, 23));
+
+                const getPositionStyle = (idx) => {
+                    const activeForm = formations[selectedFormation.value] || formations["4-3-3"];
+                    return activeForm[idx] || { top: '50%', left: '50%' };
+                };
+
+                const getCardClass = (player) => {
+                    if (showHeatmap.value) return '';
+                    switch (player.cardType) {
+                        case 'Epic': return 'card-epic';
+                        case 'Big Time': return 'card-bigtime';
+                        case 'Show Time': return 'card-showtime';
+                        case 'Highlight': return 'card-highlight';
+                        case 'Trending': return 'card-trending';
+                        default: return 'card-base';
+                    }
+                };
+
+                const getCardIcon = (cardType) => {
+                    switch (cardType) {
+                        case 'Epic': return 'fa-crown';
+                        case 'Big Time': return 'fa-bolt-lightning';
+                        case 'Show Time': return 'fa-wand-magic-sparkles';
+                        case 'Highlight': return 'fa-gem';
+                        case 'Trending': return 'fa-fire';
+                        default: return 'fa-shield-halved';
+                    }
+                };
+
+                const getCardGlowColor = (cardType) => {
+                    switch (cardType) {
+                        case 'Epic': return '#ffd700';
+                        case 'Big Time': return '#ef4444';
+                        case 'Show Time': return '#00f3ff';
+                        case 'Highlight': return '#c084fc';
+                        case 'Trending': return '#10b981';
+                        default: return '#64748b';
+                    }
+                };
+
+                const getRatingBadgeColor = (rating) => {
+                    if (rating >= 7.5) return 'bg-emerald-600 text-white border border-emerald-400';
+                    if (rating >= 6.5) return 'bg-teal-750 text-white';
+                    if (rating >= 5.5) return 'bg-amber-600 text-white';
+                    return 'bg-rose-600 text-white';
+                };
+
+                const getRatingColorClass = (rating) => {
+                    if (rating === 0) return 'bg-slate-800 border-slate-700';
+                    if (rating >= 7.5) return 'bg-emerald-955 border-2 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]';
+                    if (rating >= 6.5) return 'bg-teal-955 border-2 border-teal-500 shadow-[0_0_12px_rgba(20,184,166,0.4)]';
+                    if (rating >= 5.5) return 'bg-amber-955 border-2 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.4)]';
+                    return 'bg-rose-955 border-2 border-rose-600 shadow-[0_0_15px_rgba(239,68,68,0.5)]';
+                };
+
+                const toggleHeatmap = () => {
+                    showHeatmap.value = !showHeatmap.value;
+                };
+
+                // Open Profiles
+                const openEditPlayerModal = (idx) => {
+                    editingPlayerIndex.value = idx;
+                    const p = squad.value[idx];
+                    editForm.value = {
+                        name: p.name,
+                        position: p.position,
+                        cardType: p.cardType,
+                        playstyle: p.playstyle
+                    };
+                    showEditPlayerModal.value = true;
+                };
+
+                const closeEditPlayerModal = () => {
+                    showEditPlayerModal.value = false;
+                    editingPlayerIndex.value = null;
+                };
+
+                const savePlayerDetails = async () => {
+                    if (editingPlayerIndex.value !== null) {
+                        squad.value[editingPlayerIndex.value] = {
+                            ...squad.value[editingPlayerIndex.value],
+                            name: editForm.value.name,
+                            position: editForm.value.position,
+                            cardType: editForm.value.cardType,
+                            playstyle: editForm.value.playstyle
+                        };
+                        await saveState();
+                        await recalculateStats();
+                        showNotification('success', `Player Profile for ${editForm.value.name} updated!`);
+                        closeEditPlayerModal();
+                    }
+                };
+
+                const initMatchForm = () => {
+                    matchForm.value.opponent = '';
+                    matchForm.value.matchType = 'eFootball League';
+                    matchForm.value.ourScore = 0;
+                    matchForm.value.oppScore = 0;
+                    matchForm.value.notes = '';
+                    matchForm.value.ratings = {};
+
+                    squad.value.forEach((p, idx) => {
+                        matchForm.value.ratings[p.id] = {
+                            played: idx < 11,
+                            rating: 6.0,
+                            goals: 0,
+                            assists: 0
+                        };
+                    });
+                };
+
+                const resetMatchForm = () => {
+                    initMatchForm();
+                    showNotification('success', 'Match ratings form cleared.');
+                };
+
+                const saveMatch = async () => {
+                    const matchId = 'match_' + Date.now();
+                    const scoreDiff = matchForm.value.ourScore - matchForm.value.oppScore;
+                    let result = 'D';
+                    if (scoreDiff > 0) result = 'W';
+                    if (scoreDiff < 0) result = 'L';
+
+                    const loggedRatings = {};
+                    let activeCount = 0;
+                    
+                    Object.keys(matchForm.value.ratings).forEach(pId => {
+                        const original = matchForm.value.ratings[pId];
+                        if (original && original.played) {
+                            loggedRatings[pId] = {
+                                rating: Number(original.rating),
+                                goals: parseInt(original.goals) || 0,
+                                assists: parseInt(original.assists) || 0,
+                                played: true
+                            };
+                            activeCount++;
+                        }
+                    });
+
+                    if (activeCount === 0) {
+                        showNotification('error', 'Select at least one player who took part in this game!');
+                        return;
+                    }
+
+                    const newMatch = {
+                        id: matchId,
+                        opponent: matchForm.value.opponent,
+                        matchType: matchForm.value.matchType,
+                        ourScore: parseInt(matchForm.value.ourScore),
+                        oppScore: parseInt(matchForm.value.oppScore),
+                        result,
+                        notes: matchForm.value.notes,
+                        date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                        playerRatings: loggedRatings
+                    };
+
+                    matches.value.unshift(newMatch);
+                    await recalculateStats();
+                    await saveState();
+                    initMatchForm();
+                    
+                    showNotification('success', `Match recorded! vs ${newMatch.opponent}`);
+                    currentTab.value = 'history'; 
+                };
+
+                const deleteMatch = async (matchId) => {
+                    triggerConfirm(
+                        'Delete Match Record',
+                        'Are you sure you want to delete this match record? All player averages will be instantly updated.',
+                        async () => {
+                            matches.value = matches.value.filter(m => m.id !== matchId);
+                            await recalculateStats();
+                            await saveState();
+                            showNotification('success', 'Match record successfully deleted.');
+                        }
+                    );
+                };
+
+                const recalculateStats = async () => {
+                    squad.value.forEach(p => {
+                        p.averageRating = 0;
+                        p.matchesPlayed = 0;
+                        p.goals = 0;
+                        p.assists = 0;
+                    });
+
+                    matches.value.forEach(match => {
+                        Object.keys(match.playerRatings).forEach(pId => {
+                            const playerStat = match.playerRatings[pId];
+                            const playerObj = squad.value.find(p => p.id === parseInt(pId));
+                            if (playerObj && playerStat.played) {
+                                playerObj.matchesPlayed += 1;
+                                playerObj.goals += playerStat.goals;
+                                playerObj.assists += playerStat.assists;
+                                playerObj.averageRating += playerStat.rating;
+                            }
+                        });
+                    });
+
+                    squad.value.forEach(p => {
+                        if (p.matchesPlayed > 0) {
+                            p.averageRating = p.averageRating / p.matchesPlayed;
+                        }
+                    });
+
+                    nextTick(() => {
+                        renderTrendChart();
+                    });
+                };
+
+                const statsSummary = computed(() => {
+                    const total = matches.value.length;
+                    if (total === 0) {
+                        return { winRatio: 0, wins: 0, draws: 0, losses: 0, topScorer: { name: 'None', goals: 0 }, topAssister: { name: 'None', assists: 0 }, highestRated: { name: 'None', rating: 0 } };
+                    }
+
+                    const wins = matches.value.filter(m => m.result === 'W').length;
+                    const draws = matches.value.filter(m => m.result === 'D').length;
+                    const losses = matches.value.filter(m => m.result === 'L').length;
+                    const winRatio = Math.round((wins / total) * 100);
+
+                    let topScorer = { name: 'N/A', goals: 0 };
+                    let topAssister = { name: 'N/A', assists: 0 };
+                    let highestRated = { name: 'N/A', rating: 0 };
+
+                    squad.value.forEach(p => {
+                        if (p.goals > topScorer.goals) {
+                            topScorer = { name: p.name, goals: p.goals };
+                        }
+                        if (p.assists > topAssister.assists) {
+                            topAssister = { name: p.name, assists: p.assists };
+                        }
+                        if (p.matchesPlayed >= 1 && p.averageRating > highestRated.rating) {
+                            highestRated = { name: p.name, rating: p.averageRating };
+                        }
+                    });
+
+                    return { winRatio, wins, draws, losses, topScorer, topAssister, highestRated };
+                });
+
+                const topPerformers = computed(() => {
+                    return [...squad.value]
+                        .filter(p => p.matchesPlayed > 0)
+                        .sort((a, b) => b.averageRating - a.averageRating)
+                        .slice(0, 5);
+                });
+
+                const filteredSquad = computed(() => {
+                    if (!squadSearchQuery.value.trim()) {
+                        return [...squad.value].sort((a, b) => b.matchesPlayed - a.matchesPlayed);
+                    }
+                    const q = squadSearchQuery.value.toLowerCase();
+                    return squad.value.filter(p => p.name.toLowerCase().includes(q));
+                });
+
+                const getActiveRatingsForMatch = (match) => {
+                    const activeList = [];
+                    Object.keys(match.playerRatings).forEach(pId => {
+                        const record = match.playerRatings[pId];
+                        const player = squad.value.find(p => p.id === parseInt(pId));
+                        if (player) {
+                            activeList.push({
+                                id: pId,
+                                name: player.name,
+                                position: player.position,
+                                rating: record.rating,
+                                goals: record.goals,
+                                assists: record.assists
+                            });
+                        }
+                    });
+                    return activeList.sort((a, b) => b.rating - a.rating);
+                };
+
+                const getResultColorClass = (res) => {
+                    switch (res) {
+                        case 'W': return 'bg-emerald-950 border border-emerald-500 text-emerald-400';
+                        case 'L': return 'bg-rose-950 border border-rose-500 text-rose-400';
+                        default: return 'bg-amber-950 border border-amber-500 text-amber-400';
+                    }
+                };
+
+                const toggleMatchAccordion = (matchId) => {
+                    expandedMatchId.value = expandedMatchId.value === matchId ? null : matchId;
+                };
+
+                const resetSquad = async () => {
+                    triggerConfirm(
+                        'Wipe Application Database',
+                        'Warning: This action will permanently erase all matches and customizations. Proceed?',
+                        async () => {
+                            localStorage.removeItem('ef_squad_v2');
+                            localStorage.removeItem('ef_matches_v2');
+                            localStorage.removeItem('ef_formation_v2');
+                            await loadState();
+                            await recalculateStats();
+                            showNotification('success', 'Database cleared successfully.');
+                        }
+                    );
+                };
+
+                const loadSampleSquad = async () => {
+                    triggerConfirm(
+                        'Load Competitive Meta Squad',
+                        'Load standard setups and sample histories to evaluate performance graphs?',
+                        async () => {
+                            squad.value = JSON.parse(JSON.stringify([...defaultStarters, ...defaultSubs]));
+                            
+                            const sampleMatches = [
+                                {
+                                    id: 'm_sample_1',
+                                    opponent: 'Div 1 Pro Player',
+                                    matchType: 'eFootball League',
+                                    ourScore: 3,
+                                    oppScore: 1,
+                                    result: 'W',
+                                    notes: 'Great match. Haaland double and Messi with an open run goal.',
+                                    date: 'Jul 1, 2026, 04:32 PM',
+                                    playerRatings: {
+                                        1: { rating: 6.5, goals: 0, assists: 0, played: true },
+                                        2: { rating: 6.0, goals: 0, assists: 0, played: true },
+                                        3: { rating: 7.0, goals: 0, assists: 0, played: true },
+                                        4: { rating: 7.5, goals: 0, assists: 0, played: true },
+                                        5: { rating: 6.5, goals: 0, assists: 0, played: true },
+                                        6: { rating: 7.0, goals: 0, assists: 1, played: true },
+                                        7: { rating: 7.5, goals: 0, assists: 1, played: true },
+                                        8: { rating: 6.5, goals: 0, assists: 0, played: true },
+                                        9: { rating: 7.0, goals: 0, assists: 0, played: true },
+                                        10: { rating: 8.5, goals: 2, assists: 0, played: true },
+                                        11: { rating: 8.0, goals: 1, assists: 1, played: true }
+                                    }
+                                },
+                                {
+                                    id: 'm_sample_2',
+                                    opponent: 'AI Superstar Team',
+                                    matchType: 'AI Campaign',
+                                    ourScore: 2,
+                                    oppScore: 2,
+                                    result: 'D',
+                                    notes: 'Tight game. Subbed on Vinicius Jr late on.',
+                                    date: 'Jul 4, 2026, 09:15 PM',
+                                    playerRatings: {
+                                        1: { rating: 5.5, goals: 0, assists: 0, played: true },
+                                        2: { rating: 6.0, goals: 0, assists: 0, played: true },
+                                        3: { rating: 6.5, goals: 0, assists: 0, played: true },
+                                        4: { rating: 6.0, goals: 0, assists: 0, played: true },
+                                        5: { rating: 5.5, goals: 0, assists: 0, played: true },
+                                        6: { rating: 6.5, goals: 0, assists: 0, played: true },
+                                        7: { rating: 7.0, goals: 1, assists: 0, played: true },
+                                        8: { rating: 6.0, goals: 0, assists: 0, played: true },
+                                        9: { rating: 5.5, goals: 0, assists: 0, played: true },
+                                        10: { rating: 6.5, goals: 0, assists: 1, played: true },
+                                        11: { rating: 7.0, goals: 1, assists: 0, played: true },
+                                        18: { rating: 6.5, goals: 0, assists: 1, played: true }
+                                    }
+                                }
+                            ];
+
+                            matches.value = sampleMatches;
+                            await recalculateStats();
+                            await saveState();
+                            showNotification('success', 'Meta configurations loaded successfully.');
+                        }
+                    );
+                };
+
+                const exportSquadBackup = () => {
+                    try {
+                        const payload = {
+                            squad: squad.value,
+                            matches: matches.value,
+                            formation: selectedFormation.value,
+                            exportedAt: new Date().toISOString()
+                        };
+                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+                        const dlAnchorElem = document.createElement('a');
+                        dlAnchorElem.setAttribute("href", dataStr);
+                        dlAnchorElem.setAttribute("download", `ef_squad_backup_${Date.now()}.json`);
+                        dlAnchorElem.click();
+                        showNotification('success', 'Backup file successfully saved to device downloads.');
+                    } catch (err) {
+                        showNotification('error', 'Error compiling backup details.');
+                    }
+                };
+
+                const importSquadBackup = (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            const imported = JSON.parse(e.target.result);
+                            if (imported.squad && Array.isArray(imported.squad)) {
+                                squad.value = imported.squad;
+                                matches.value = imported.matches || [];
+                                selectedFormation.value = imported.formation || '4-3-3';
+                                
+                                await recalculateStats();
+                                await saveState();
+                                showNotification('success', 'Backup JSON successfully compiled and loaded.');
+                            } else {
+                                showNotification('error', 'Unsupported schema configuration in JSON backup.');
+                            }
+                        } catch (err) {
+                            showNotification('error', 'Parsing error reading backup package.');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+
+                let trendChartInstance = null;
+
+                const renderTrendChart = () => {
+                    const ctx = document.getElementById('formTrendChart');
+                    if (!ctx) return;
+
+                    if (trendChartInstance) {
+                        trendChartInstance.destroy();
+                    }
+
+                    const sortedMatches = [...matches.value].reverse();
+                    const labels = sortedMatches.map((m, index) => `G${index+1}: vs ${m.opponent.slice(0, 8)}`);
+                    const dataPoints = sortedMatches.map(m => {
+                        const ratings = Object.values(m.playerRatings).map(r => r.rating);
+                        if (ratings.length === 0) return 0;
+                        return parseFloat((ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(2));
+                    });
+
+                    trendChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Squad Average Rating',
+                                data: dataPoints,
+                                borderColor: '#6366f1',
+                                backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.4,
+                                pointBackgroundColor: '#4f46e5',
+                                pointHoverRadius: 7
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const match = sortedMatches[context.dataIndex];
+                                            return `Avg: ${context.parsed.y} (${match.ourScore}-${match.oppScore})`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    min: 4,
+                                    max: 9,
+                                    ticks: { color: '#94a3b8', stepSize: 1 },
+                                    grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                                },
+                                x: {
+                                    ticks: { color: '#94a3b8' },
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                };
+
+                watch(currentTab, (newTab) => {
+                    if (newTab === 'analytics') {
+                        nextTick(() => { renderTrendChart(); });
+                    }
+                });
+
+                onMounted(async () => {
+                    await setupFirebase();
+                    await loadState();
+                    await recalculateStats();
+                });
+
+                return {
+                    currentTab,
+                    squad,
+                    starters,
+                    substitutes,
+                    formations,
+                    selectedFormation,
+                    showHeatmap,
+                    notification,
+                    expandedMatchId,
+                    squadSearchQuery,
+                    
+                    showConfirmModal,
+                    confirmTitle,
+                    confirmMessage,
+                    handleConfirmYes,
+                    handleConfirmNo,
+
+                    isCloudEnabled,
+                    isCloudSyncing,
+                    exportSquadBackup,
+                    importSquadBackup,
+
+                    showEditPlayerModal,
+                    editForm,
+                    openEditPlayerModal,
+                    closeEditPlayerModal,
+                    savePlayerDetails,
+                    positionsList,
+                    playstyleList,
+
+                    matchForm,
+                    resetMatchForm,
+                    saveMatch,
+
+                    matches,
+                    deleteMatch,
+                    getActiveRatingsForMatch,
+                    getResultColorClass,
+                    toggleMatchAccordion,
+
+                    statsSummary,
+                    topPerformers,
+                    filteredSquad,
+
+                    resetSquad,
+                    loadSampleSquad,
+                    toggleHeatmap,
+                    getPositionStyle,
+                    getCardClass,
+                    getCardIcon,
+                    getCardGlowColor,
+                    getRatingBadgeColor,
+                    getRatingColorClass,
+                    showNotification
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
