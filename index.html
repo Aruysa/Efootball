@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
@@ -111,7 +111,6 @@
 
     <div id="app" class="flex flex-col min-h-screen pb-16 md:pb-12" v-cloak>
         
-        <!-- Header / Desktop Navigation Bar -->
         <header class="sticky top-0 z-40 bg-slate-900/95 border-b border-slate-800 backdrop-blur-md px-4 py-3">
             <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-3 w-full md:w-auto">
@@ -122,7 +121,7 @@
                         <h1 class="text-base md:text-lg font-bold tracking-tight text-white flex items-center gap-2">
                             eFootball Mobile <span class="text-[10px] md:text-xs bg-cyan-500 text-slate-900 px-2 py-0.5 rounded-full font-bold">PRO SQUAD</span>
                         </h1>
-                        <p class="text-[10px] md:text-xs text-slate-400">Manage 11 Starters, 12 Subs, and view performance trends</p>
+                        <p class="text-[10px] md:text-xs text-slate-400">Manage Squads, Subs, and view performance trends</p>
                     </div>
                 </div>
                 
@@ -162,7 +161,6 @@
             </div>
         </header>
 
-        <!-- Mobile Bottom Navigation Bar -->
         <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 border-t border-slate-800 backdrop-blur-lg z-50 flex justify-around py-2 px-3 pb-safe shadow-2xl">
             <button 
                 @click="currentTab = 'squad'" 
@@ -201,7 +199,6 @@
             </button>
         </nav>
 
-        <!-- Main Content Area -->
         <main class="flex-grow max-w-7xl w-full mx-auto px-4 mt-4 md:mt-6">
             
             <!-- Alert/Notification Banner -->
@@ -224,13 +221,21 @@
                 <!-- Left Pitch Section (7 cols) -->
                 <div class="lg:col-span-7 flex flex-col gap-4">
                     <div class="bg-slate-900 p-3 md:p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-3 md:gap-4">
-                        <div class="flex items-center justify-between flex-wrap gap-2">
-                            <div>
-                                <h2 class="text-base md:text-xl font-bold text-white flex items-center gap-2">
-                                    <i class="fa-solid fa-square-poll-vertical text-green-400"></i> Active Formation
-                                </h2>
-                                <p class="text-[10px] md:text-xs text-slate-400">Tap cards below to edit details</p>
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <div class="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2 bg-slate-800 border border-slate-700 p-1.5 rounded-xl">
+                                <select 
+                                    v-model="activeSquadId" 
+                                    @change="onSquadSwitch"
+                                    class="bg-transparent text-sm md:text-base font-bold text-white px-2 py-1 focus:ring-0 outline-none w-40 truncate appearance-none cursor-pointer">
+                                    <option v-for="sq in squads" :key="sq.id" :value="sq.id">{{ sq.name }}</option>
+                                </select>
+                                <div class="flex items-center gap-1 pr-1">
+                                    <button @click="openSquadManager" class="bg-slate-700 hover:bg-indigo-600 text-slate-200 w-7 h-7 rounded flex items-center justify-center transition">
+                                        <i class="fa-solid fa-gear text-xs"></i>
+                                    </button>
+                                </div>
                             </div>
+                            
                             <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                                 <div class="flex items-center gap-1.5">
                                     <label class="text-[10px] font-bold uppercase text-slate-400">Form:</label>
@@ -262,50 +267,50 @@
                             <div class="absolute bottom-2 md:bottom-4 left-1/2 -translate-x-1/2 w-1/4 h-1/12 border-t-2 border-x-2 border-white/10 pointer-events-none"></div>
 
                             <!-- Starters Cards Layer -->
-                            <div 
-                                v-for="(p, idx) in starters" 
-                                :key="p.id" 
-                                :style="{ top: getPositionStyle(idx).top, left: getPositionStyle(idx).left }"
-                                @click="openEditPlayerModal(idx)"
-                                class="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 hover:scale-110 active:scale-95 z-10 w-14 sm:w-20 lg:w-24 text-center">
-                                
+                            <template v-for="(pId, idx) in startersIds" :key="'pitch-'+idx+'-'+pId">
                                 <div 
-                                    :class="[getCardClass(p), showHeatmap ? getRatingColorClass(p.averageRating) : '']"
-                                    class="relative aspect-[3/4] p-1 rounded-lg flex flex-col justify-between items-center text-slate-100 shadow-md">
+                                    :style="{ top: getPositionStyle(idx).top, left: getPositionStyle(idx).left }"
+                                    @click="openSlotSwapModal(idx, 'starter')"
+                                    class="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 hover:scale-110 active:scale-95 z-10 w-14 sm:w-20 lg:w-24 text-center">
                                     
-                                    <!-- Position Bubble -->
-                                    <span class="absolute -top-1 -left-1 text-[8px] sm:text-[9px] font-extrabold px-1 sm:px-1.5 py-0.5 rounded-full shadow-md bg-slate-950 text-indigo-400">
-                                        {{ p.position }}
-                                    </span>
+                                    <div 
+                                        v-if="getPlayerFromMaster(pId)"
+                                        :class="[getCardClass(getPlayerFromMaster(pId)), showHeatmap ? getRatingColorClass(getPlayerFromMaster(pId).averageRating) : '']"
+                                        class="relative aspect-[3/4] p-1 rounded-lg flex flex-col justify-between items-center text-slate-100 shadow-md">
+                                        
+                                        <span class="absolute -top-1 -left-1 text-[8px] sm:text-[9px] font-extrabold px-1 sm:px-1.5 py-0.5 rounded-full shadow-md bg-slate-950 text-indigo-400">
+                                            {{ getPlayerFromMaster(pId).position }}
+                                        </span>
 
-                                    <!-- Rating Badge -->
-                                    <span class="absolute -top-1 -right-1 text-[8px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full shadow-md"
-                                        :class="p.averageRating > 0 ? getRatingBadgeColor(p.averageRating) : 'bg-slate-800 text-slate-400'">
-                                        {{ p.averageRating > 0 ? p.averageRating.toFixed(1) : '-' }}
-                                    </span>
+                                        <span class="absolute -top-1 -right-1 text-[8px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full shadow-md"
+                                            :class="getPlayerFromMaster(pId).averageRating > 0 ? getRatingBadgeColor(getPlayerFromMaster(pId).averageRating) : 'bg-slate-800 text-slate-400'">
+                                            {{ getPlayerFromMaster(pId).averageRating > 0 ? getPlayerFromMaster(pId).averageRating.toFixed(1) : '-' }}
+                                        </span>
 
-                                    <!-- eFootball Icon -->
-                                    <div class="mt-1 flex items-center justify-center">
-                                        <i class="fa-solid" :class="getCardIcon(p.cardType) + ' text-[9px] sm:text-xs text-yellow-400 opacity-80'"></i>
-                                    </div>
-
-                                    <!-- Player Name & Playstyle -->
-                                    <div class="w-full text-center mt-auto">
-                                        <div class="text-[8px] sm:text-[10px] font-bold tracking-tight truncate leading-tight uppercase text-white drop-shadow-md">
-                                            {{ p.name }}
+                                        <div class="mt-1 flex items-center justify-center">
+                                            <i class="fa-solid" :class="getCardIcon(getPlayerFromMaster(pId).cardType) + ' text-[9px] sm:text-xs text-yellow-400 opacity-80'"></i>
                                         </div>
-                                        <div class="text-[7px] sm:text-[8px] font-medium text-slate-300 truncate opacity-90 leading-tight hidden sm:block">
-                                            {{ p.playstyle || 'No Playstyle' }}
+
+                                        <div class="w-full text-center mt-auto">
+                                            <div class="text-[8px] sm:text-[10px] font-bold tracking-tight truncate leading-tight uppercase text-white drop-shadow-md">
+                                                {{ getPlayerFromMaster(pId).name }}
+                                            </div>
+                                            <div class="text-[7px] sm:text-[8px] font-medium text-slate-300 truncate opacity-90 leading-tight hidden sm:block">
+                                                {{ getPlayerFromMaster(pId).playstyle || 'No Playstyle' }}
+                                            </div>
+                                        </div>
+
+                                        <div class="w-full flex items-center justify-around text-[7px] sm:text-[8px] text-slate-400 mt-0.5 pt-0.5 border-t border-slate-700/50">
+                                            <span><i class="fa-solid fa-shirt text-[6px] sm:text-[7px]"></i> {{ getPlayerFromMaster(pId).matchesPlayed || 0 }}</span>
+                                            <span v-if="getPlayerFromMaster(pId).goals > 0" class="text-amber-500 font-semibold"><i class="fa-solid fa-soccer-ball text-[6px]"></i> {{ getPlayerFromMaster(pId).goals }}</span>
                                         </div>
                                     </div>
-
-                                    <!-- Mini stats bar -->
-                                    <div class="w-full flex items-center justify-around text-[7px] sm:text-[8px] text-slate-400 mt-0.5 pt-0.5 border-t border-slate-700/50">
-                                        <span><i class="fa-solid fa-shirt text-[6px] sm:text-[7px]"></i> {{ p.matchesPlayed || 0 }}</span>
-                                        <span v-if="p.goals > 0" class="text-amber-500 font-semibold"><i class="fa-solid fa-soccer-ball text-[6px]"></i> {{ p.goals }}</span>
+                                    <div v-else class="relative aspect-[3/4] p-1 rounded-lg flex flex-col justify-center items-center text-slate-500 border border-dashed border-slate-500 bg-slate-900/50">
+                                        <i class="fa-solid fa-plus text-xs sm:text-lg mb-1"></i>
+                                        <span class="text-[7px] sm:text-[9px] uppercase font-bold">Empty</span>
                                     </div>
                                 </div>
-                            </div>
+                            </template>
                         </div>
                     </div>
                 </div>
@@ -321,68 +326,57 @@
                                 <p class="text-[10px] md:text-xs text-slate-400">Bench players eligible for swapping</p>
                             </div>
                             <div class="text-[10px] md:text-xs font-semibold px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-full text-indigo-400">
-                                {{ substitutes.length }} / 12
+                                {{ subsIds.length }} / 12
                             </div>
                         </div>
 
                         <!-- Subs Scroll Grid -->
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[300px] md:max-h-[420px] overflow-y-auto pr-1">
-                            <div 
-                                v-for="(p, idx) in substitutes" 
-                                :key="p.id" 
-                                @click="openEditPlayerModal(11 + idx)"
-                                class="bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 rounded-xl p-2.5 text-center cursor-pointer relative group transition-all duration-200">
-                                
-                                <span class="absolute top-1.5 left-1.5 text-[7px] sm:text-[8px] font-black uppercase text-slate-400 bg-slate-950 px-1.5 py-0.5 rounded-md">
-                                    {{ p.position }}
-                                </span>
+                            <template v-for="(pId, idx) in subsIds" :key="'bench-'+idx+'-'+pId">
+                                <div 
+                                    @click="openSlotSwapModal(idx, 'sub')"
+                                    v-if="getPlayerFromMaster(pId)"
+                                    class="bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 hover:border-slate-600 rounded-xl p-2.5 text-center cursor-pointer relative group transition-all duration-200">
+                                    
+                                    <span class="absolute top-1.5 left-1.5 text-[7px] sm:text-[8px] font-black uppercase text-slate-400 bg-slate-950 px-1.5 py-0.5 rounded-md">
+                                        {{ getPlayerFromMaster(pId).position }}
+                                    </span>
 
-                                <span class="absolute top-1.5 right-1.5 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md"
-                                    :class="p.averageRating > 0 ? getRatingBadgeColor(p.averageRating) : 'bg-slate-900 text-slate-500'">
-                                    {{ p.averageRating > 0 ? p.averageRating.toFixed(1) : '-' }}
-                                </span>
+                                    <span class="absolute top-1.5 right-1.5 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+                                        :class="getPlayerFromMaster(pId).averageRating > 0 ? getRatingBadgeColor(getPlayerFromMaster(pId).averageRating) : 'bg-slate-900 text-slate-500'">
+                                        {{ getPlayerFromMaster(pId).averageRating > 0 ? getPlayerFromMaster(pId).averageRating.toFixed(1) : '-' }}
+                                    </span>
 
-                                <div class="w-full flex justify-center my-1.5">
-                                    <div class="w-2 h-2 rounded-full" :style="{ backgroundColor: getCardGlowColor(p.cardType) }"></div>
+                                    <div class="w-full flex justify-center my-1.5">
+                                        <div class="w-2 h-2 rounded-full" :style="{ backgroundColor: getCardGlowColor(getPlayerFromMaster(pId).cardType) }"></div>
+                                    </div>
+
+                                    <div class="font-bold text-xs truncate text-white leading-tight mt-1">{{ getPlayerFromMaster(pId).name }}</div>
+                                    <div class="text-[8px] sm:text-[9px] text-slate-400 truncate mt-0.5">{{ getPlayerFromMaster(pId).playstyle || 'No Playstyle' }}</div>
+                                    
+                                    <div class="flex items-center justify-center gap-1.5 text-[8px] sm:text-[9px] text-slate-500 mt-1.5 border-t border-slate-700/50 pt-1.5">
+                                        <span>GP: {{ getPlayerFromMaster(pId).matchesPlayed || 0 }}</span>
+                                        <span v-if="getPlayerFromMaster(pId).goals > 0" class="text-amber-500 font-semibold">G: {{ getPlayerFromMaster(pId).goals }}</span>
+                                    </div>
                                 </div>
-
-                                <div class="font-bold text-xs truncate text-white leading-tight mt-1">{{ p.name }}</div>
-                                <div class="text-[8px] sm:text-[9px] text-slate-400 truncate mt-0.5">{{ p.playstyle || 'No Playstyle' }}</div>
-                                
-                                <div class="flex items-center justify-center gap-1.5 text-[8px] sm:text-[9px] text-slate-500 mt-1.5 border-t border-slate-700/50 pt-1.5">
-                                    <span>GP: {{ p.matchesPlayed || 0 }}</span>
-                                    <span v-if="p.goals > 0" class="text-amber-500 font-semibold">G: {{ p.goals }}</span>
+                                <div v-else
+                                    @click="openSlotSwapModal(idx, 'sub')"
+                                    class="bg-slate-800/40 hover:bg-slate-800/60 border border-dashed border-slate-700 rounded-xl p-2.5 flex flex-col justify-center items-center h-24 text-center cursor-pointer transition-all duration-200">
+                                    <i class="fa-solid fa-plus text-slate-500 mb-2 text-lg"></i>
+                                    <span class="text-[9px] font-bold text-slate-500 uppercase">Empty Slot</span>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Operations panel -->
-                    <div class="bg-slate-900 p-4 md:p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-3">
-                        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Quick Squad Actions</h3>
-                        <div class="grid grid-cols-2 gap-2.5">
-                            <button 
-                                @click="loadSampleSquad" 
-                                class="bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-800 text-indigo-300 text-xs font-semibold py-2 px-3 rounded-lg transition duration-150 flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-wand-magic-sparkles"></i> Load Meta Squad
-                            </button>
-                            <button 
-                                @click="resetSquad" 
-                                class="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900 text-rose-300 text-xs font-semibold py-2 px-3 rounded-lg transition duration-150 flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-trash-can"></i> Reset All
-                            </button>
+                            </template>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Log Match View -->
             <div v-show="currentTab === 'log-match'" class="max-w-4xl mx-auto bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
                 <div class="bg-gradient-to-r from-slate-900 to-indigo-950 p-4 md:p-6 border-b border-slate-800">
                     <h2 class="text-lg md:text-2xl font-bold text-white flex items-center gap-2">
                         <i class="fa-solid fa-file-pen text-indigo-400"></i> Record Match Stats & Ratings
                     </h2>
-                    <p class="text-xs md:text-sm text-slate-400">Input ratings, goals, and assists for the match. Only active/subbed players affect averages.</p>
+                    <p class="text-xs md:text-sm text-slate-400">Input ratings, goals, and assists for the match. Match logs bind directly to Master Registry Player IDs.</p>
                 </div>
 
                 <form @submit.prevent="saveMatch" class="p-4 md:p-6 space-y-5 md:space-y-6">
@@ -456,41 +450,39 @@
                     <div>
                         <h3 class="text-xs md:text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 pb-1.5 border-b border-slate-800 flex items-center justify-between">
                             <span>Starting XI</span>
-                            <span class="text-[9px] md:text-xs text-indigo-400 normal-case font-medium">Ratings: 4.0 to 9.0</span>
+                            <span class="text-[9px] md:text-xs text-indigo-400 normal-case font-medium">Ratings: 3.5 to 9.0</span>
                         </h3>
                         <div class="space-y-2.5">
-                            <template v-for="(p, index) in starters" :key="'log-starter-'+p.id">
+                            <template v-for="pId in startersIds" :key="'log-starter-'+pId">
                                 <div 
-                                    v-if="matchForm.ratings && matchForm.ratings[p.id]"
+                                    v-if="getPlayerFromMaster(pId) && matchForm.ratings && matchForm.ratings[pId]"
                                     class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-800/40 p-3 rounded-xl border border-slate-800/80 hover:bg-slate-800/80 transition duration-150">
                                     
                                     <div class="md:col-span-3 flex items-center justify-between md:justify-start gap-3">
                                         <div class="flex items-center gap-2">
                                             <span class="text-[9px] md:text-xs font-extrabold px-2 py-0.5 rounded-md bg-indigo-900/40 text-indigo-400 w-11 text-center shrink-0">
-                                                {{ p.position }}
+                                                {{ getPlayerFromMaster(pId).position }}
                                             </span>
-                                            <span class="font-semibold text-white truncate text-xs md:text-sm">{{ p.name }}</span>
+                                            <span class="font-semibold text-white truncate text-xs md:text-sm">{{ getPlayerFromMaster(pId).name }}</span>
                                         </div>
                                         <div class="md:hidden flex items-center gap-1.5">
                                             <span class="text-[10px] text-slate-400">Played</span>
                                             <input 
                                                 type="checkbox" 
-                                                v-model="matchForm.ratings[p.id].played"
+                                                v-model="matchForm.ratings[pId].played"
                                                 class="w-5 h-5 text-indigo-600 bg-slate-900 border-slate-700 rounded focus:ring-indigo-500 focus:ring-2">
                                         </div>
                                     </div>
 
-                                    <!-- Played check for desktop -->
                                     <div class="hidden md:col-span-2 md:flex items-center gap-2">
                                         <input 
                                             type="checkbox" 
-                                            v-model="matchForm.ratings[p.id].played"
+                                            v-model="matchForm.ratings[pId].played"
                                             class="w-5 h-5 text-indigo-600 bg-slate-900 border-slate-700 rounded focus:ring-indigo-500 focus:ring-2">
                                         <span class="text-xs text-slate-300">Started Match</span>
                                     </div>
 
-                                    <!-- Rating Slider & Value -->
-                                    <div class="md:col-span-4 flex items-center justify-between md:justify-start gap-3" v-if="matchForm.ratings[p.id].played">
+                                    <div class="md:col-span-4 flex items-center justify-between md:justify-start gap-3" v-if="matchForm.ratings[pId].played">
                                         <span class="text-xs text-slate-400 shrink-0">Rating:</span>
                                         <div class="flex-grow flex items-center gap-2 px-1">
                                             <input 
@@ -498,31 +490,30 @@
                                                 min="3.5" 
                                                 max="9.0" 
                                                 step="0.5" 
-                                                v-model.number="matchForm.ratings[p.id].rating"
+                                                v-model.number="matchForm.ratings[pId].rating"
                                                 class="w-full h-2.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
                                         </div>
                                         <span class="text-xs font-bold px-2 py-1 rounded w-10 text-center"
-                                            :class="getRatingBadgeColor(matchForm.ratings[p.id].rating)">
-                                            {{ matchForm.ratings[p.id].rating }}
+                                            :class="getRatingBadgeColor(matchForm.ratings[pId].rating)">
+                                            {{ matchForm.ratings[pId].rating }}
                                         </span>
                                     </div>
                                     <div class="md:col-span-4 text-xs text-slate-500 italic" v-else>
                                         Did not play in this game
                                     </div>
 
-                                    <!-- G/A Stats (Touch buttons for steppers) -->
-                                    <div class="md:col-span-3 flex items-center gap-3 justify-end" v-if="matchForm.ratings[p.id].played">
+                                    <div class="md:col-span-3 flex items-center gap-3 justify-end" v-if="matchForm.ratings[pId].played">
                                         <div class="flex items-center gap-1.5">
                                             <label class="text-[9px] uppercase font-bold text-slate-400">Goals</label>
                                             <div class="flex items-center">
                                                 <button 
                                                     type="button" 
-                                                    @click="matchForm.ratings[p.id].goals = Math.max(0, matchForm.ratings[p.id].goals - 1)"
+                                                    @click="matchForm.ratings[pId].goals = Math.max(0, matchForm.ratings[pId].goals - 1)"
                                                     class="bg-slate-700 text-white rounded-l w-6 h-6 flex items-center justify-center font-bold text-xs">-</button>
-                                                <span class="w-7 bg-slate-900 border-y border-slate-700 text-center text-xs py-0.5 font-bold text-white">{{ matchForm.ratings[p.id].goals }}</span>
+                                                <span class="w-7 bg-slate-900 border-y border-slate-700 text-center text-xs py-0.5 font-bold text-white">{{ matchForm.ratings[pId].goals }}</span>
                                                 <button 
                                                     type="button" 
-                                                    @click="matchForm.ratings[p.id].goals++"
+                                                    @click="matchForm.ratings[pId].goals++"
                                                     class="bg-slate-700 text-white rounded-r w-6 h-6 flex items-center justify-center font-bold text-xs">+</button>
                                             </div>
                                         </div>
@@ -531,12 +522,12 @@
                                             <div class="flex items-center">
                                                 <button 
                                                     type="button" 
-                                                    @click="matchForm.ratings[p.id].assists = Math.max(0, matchForm.ratings[p.id].assists - 1)"
+                                                    @click="matchForm.ratings[pId].assists = Math.max(0, matchForm.ratings[pId].assists - 1)"
                                                     class="bg-slate-700 text-white rounded-l w-6 h-6 flex items-center justify-center font-bold text-xs">-</button>
-                                                <span class="w-7 bg-slate-900 border-y border-slate-700 text-center text-xs py-0.5 font-bold text-white">{{ matchForm.ratings[p.id].assists }}</span>
+                                                <span class="w-7 bg-slate-900 border-y border-slate-700 text-center text-xs py-0.5 font-bold text-white">{{ matchForm.ratings[pId].assists }}</span>
                                                 <button 
                                                     type="button" 
-                                                    @click="matchForm.ratings[p.id].assists++"
+                                                    @click="matchForm.ratings[pId].assists++"
                                                     class="bg-slate-700 text-white rounded-r w-6 h-6 flex items-center justify-center font-bold text-xs">+</button>
                                             </div>
                                         </div>
@@ -552,41 +543,39 @@
                             Substitutes (Check to mark as "Subbed In")
                         </h3>
                         <div class="space-y-2.5">
-                            <template v-for="(p, index) in substitutes" :key="'log-sub-'+p.id">
+                            <template v-for="pId in subsIds" :key="'log-sub-'+pId">
                                 <div 
-                                    v-if="matchForm.ratings && matchForm.ratings[p.id]"
+                                    v-if="getPlayerFromMaster(pId) && matchForm.ratings && matchForm.ratings[pId]"
                                     class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-slate-800/40 p-3 rounded-xl border border-slate-800/80 hover:bg-slate-800/80 transition duration-150"
-                                    :class="matchForm.ratings[p.id].played ? 'border-indigo-500/50 bg-slate-800' : ''">
+                                    :class="matchForm.ratings[pId].played ? 'border-indigo-500/50 bg-slate-800' : ''">
                                     
                                     <div class="md:col-span-3 flex items-center justify-between md:justify-start gap-3">
                                         <div class="flex items-center gap-2">
                                             <span class="text-[9px] md:text-xs font-extrabold px-2 py-0.5 rounded-md bg-slate-700/60 text-slate-300 w-11 text-center shrink-0">
-                                                {{ p.position }}
+                                                {{ getPlayerFromMaster(pId).position }}
                                             </span>
-                                            <span class="font-semibold text-white truncate text-xs md:text-sm">{{ p.name }}</span>
+                                            <span class="font-semibold text-white truncate text-xs md:text-sm">{{ getPlayerFromMaster(pId).name }}</span>
                                         </div>
                                         <div class="md:hidden flex items-center gap-1.5">
-                                            <span class="text-[10px] text-emerald-400" v-if="matchForm.ratings[p.id].played">Subbed In</span>
+                                            <span class="text-[10px] text-emerald-400" v-if="matchForm.ratings[pId].played">Subbed In</span>
                                             <span class="text-[10px] text-slate-400" v-else>Bench</span>
                                             <input 
                                                 type="checkbox" 
-                                                v-model="matchForm.ratings[p.id].played"
+                                                v-model="matchForm.ratings[pId].played"
                                                 class="w-5 h-5 text-emerald-600 bg-slate-900 border-slate-700 rounded focus:ring-emerald-500 focus:ring-2">
                                         </div>
                                     </div>
 
-                                    <!-- Played checkbox for desktop -->
                                     <div class="hidden md:col-span-2 md:flex items-center gap-2">
                                         <input 
                                             type="checkbox" 
-                                            v-model="matchForm.ratings[p.id].played"
+                                            v-model="matchForm.ratings[pId].played"
                                             class="w-5 h-5 text-emerald-600 bg-slate-900 border-slate-700 rounded focus:ring-emerald-500 focus:ring-2">
-                                        <span class="text-xs text-emerald-400 font-medium" v-if="matchForm.ratings[p.id].played">Subbed In</span>
+                                        <span class="text-xs text-emerald-400 font-medium" v-if="matchForm.ratings[pId].played">Subbed In</span>
                                         <span class="text-xs text-slate-400" v-else>On Bench</span>
                                     </div>
 
-                                    <!-- Rating Slider & Value -->
-                                    <div class="md:col-span-4 flex items-center justify-between md:justify-start gap-3" v-if="matchForm.ratings[p.id].played">
+                                    <div class="md:col-span-4 flex items-center justify-between md:justify-start gap-3" v-if="matchForm.ratings[pId].played">
                                         <span class="text-xs text-slate-400 shrink-0">Rating:</span>
                                         <div class="flex-grow flex items-center gap-2 px-1">
                                             <input 
@@ -594,31 +583,30 @@
                                                 min="3.5" 
                                                 max="9.0" 
                                                 step="0.5" 
-                                                v-model.number="matchForm.ratings[p.id].rating"
+                                                v-model.number="matchForm.ratings[pId].rating"
                                                 class="w-full h-2.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
                                         </div>
                                         <span class="text-xs font-bold px-2 py-1 rounded w-10 text-center"
-                                            :class="getRatingBadgeColor(matchForm.ratings[p.id].rating)">
-                                            {{ matchForm.ratings[p.id].rating }}
+                                            :class="getRatingBadgeColor(matchForm.ratings[pId].rating)">
+                                            {{ matchForm.ratings[pId].rating }}
                                         </span>
                                     </div>
                                     <div class="md:col-span-4 text-xs text-slate-500 italic" v-else>
                                         Benchwarmer / Unused sub
                                     </div>
 
-                                    <!-- G/A Stats (Touch steppers) -->
-                                    <div class="md:col-span-3 flex items-center gap-3 justify-end" v-if="matchForm.ratings[p.id].played">
+                                    <div class="md:col-span-3 flex items-center gap-3 justify-end" v-if="matchForm.ratings[pId].played">
                                         <div class="flex items-center gap-1.5">
                                             <label class="text-[9px] uppercase font-bold text-slate-400">Goals</label>
                                             <div class="flex items-center">
                                                 <button 
                                                     type="button" 
-                                                    @click="matchForm.ratings[p.id].goals = Math.max(0, matchForm.ratings[p.id].goals - 1)"
+                                                    @click="matchForm.ratings[pId].goals = Math.max(0, matchForm.ratings[pId].goals - 1)"
                                                     class="bg-slate-700 text-white rounded-l w-6 h-6 flex items-center justify-center font-bold text-xs">-</button>
-                                                <span class="w-7 bg-slate-900 border-y border-slate-700 text-center text-xs py-0.5 font-bold text-white">{{ matchForm.ratings[p.id].goals }}</span>
+                                                <span class="w-7 bg-slate-900 border-y border-slate-700 text-center text-xs py-0.5 font-bold text-white">{{ matchForm.ratings[pId].goals }}</span>
                                                 <button 
                                                     type="button" 
-                                                    @click="matchForm.ratings[p.id].goals++"
+                                                    @click="matchForm.ratings[pId].goals++"
                                                     class="bg-slate-700 text-white rounded-r w-6 h-6 flex items-center justify-center font-bold text-xs">+</button>
                                             </div>
                                         </div>
@@ -627,12 +615,12 @@
                                             <div class="flex items-center">
                                                 <button 
                                                     type="button" 
-                                                    @click="matchForm.ratings[p.id].assists = Math.max(0, matchForm.ratings[p.id].assists - 1)"
+                                                    @click="matchForm.ratings[pId].assists = Math.max(0, matchForm.ratings[pId].assists - 1)"
                                                     class="bg-slate-700 text-white rounded-l w-6 h-6 flex items-center justify-center font-bold text-xs">-</button>
-                                                <span class="w-7 bg-slate-900 border-y border-slate-700 text-center text-xs py-0.5 font-bold text-white">{{ matchForm.ratings[p.id].assists }}</span>
+                                                <span class="w-7 bg-slate-900 border-y border-slate-700 text-center text-xs py-0.5 font-bold text-white">{{ matchForm.ratings[pId].assists }}</span>
                                                 <button 
                                                     type="button" 
-                                                    @click="matchForm.ratings[p.id].assists++"
+                                                    @click="matchForm.ratings[pId].assists++"
                                                     class="bg-slate-700 text-white rounded-r w-6 h-6 flex items-center justify-center font-bold text-xs">+</button>
                                             </div>
                                         </div>
@@ -663,7 +651,7 @@
                         <button 
                             type="submit" 
                             class="px-5 py-2 rounded-lg text-xs md:text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition duration-150">
-                            Save Match
+                            Save Match Log
                         </button>
                     </div>
                 </form>
@@ -676,10 +664,10 @@
                         <h2 class="text-lg md:text-2xl font-bold text-white flex items-center gap-2">
                             <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> Match History Logs
                         </h2>
-                        <p class="text-xs text-slate-400">Review and inspect tactical performance records</p>
+                        <p class="text-xs text-slate-400">Global Match history across all squads.</p>
                     </div>
                     <div class="text-[10px] md:text-xs bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-slate-400">
-                        Total: <strong class="text-white">{{ matches.length }}</strong>
+                        Total Logs: <strong class="text-white">{{ matches.length }}</strong>
                     </div>
                 </div>
 
@@ -720,7 +708,9 @@
                                             {{ match.matchType }}
                                         </span>
                                     </div>
-                                    <p class="text-[9px] md:text-xs text-slate-400 mt-0.5">{{ match.date }}</p>
+                                    <p class="text-[9px] md:text-xs text-slate-400 mt-0.5">
+                                        Squad: {{ getSquadName(match.squadId) }} | {{ match.date }}
+                                    </p>
                                 </div>
                             </div>
 
@@ -758,7 +748,7 @@
 
                             <!-- Player Ratings details -->
                             <div>
-                                <h5 class="text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-2">Lineup Ratings</h5>
+                                <h5 class="text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-2">Logged Lineup Ratings</h5>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                                     <div 
                                         v-for="pRating in getActiveRatingsForMatch(match)" 
@@ -832,7 +822,6 @@
 
                 <!-- Graphs & Chart Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <!-- Form Trend Chart -->
                     <div class="lg:col-span-8 bg-slate-900 p-4 md:p-5 rounded-2xl border border-slate-800 shadow-xl">
                         <div class="flex items-center justify-between mb-3">
                             <div>
@@ -847,13 +836,12 @@
                         </div>
                     </div>
 
-                    <!-- Top 5 Performers Chart -->
                     <div class="lg:col-span-4 bg-slate-900 p-4 md:p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between">
                         <div>
                             <h3 class="text-sm md:text-lg font-bold text-white flex items-center gap-2 mb-1">
-                                <i class="fa-solid fa-medal text-yellow-400"></i> Top 5 MVPs
+                                <i class="fa-solid fa-medal text-yellow-400"></i> Club Master MVPs
                             </h3>
-                            <p class="text-[10px] md:text-xs text-slate-400 mb-3 md:mb-4">Based on lifetime rating average</p>
+                            <p class="text-[10px] md:text-xs text-slate-400 mb-3 md:mb-4">Top 5 players across all squads</p>
                         </div>
                         <div class="space-y-2.5 flex-grow justify-center flex flex-col">
                             <div 
@@ -882,23 +870,27 @@
                     </div>
                 </div>
 
-                <!-- Detailed Player Stats Table -->
+                <!-- Master Registry Table -->
                 <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
                     <div class="p-4 md:p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div>
-                            <h3 class="text-sm md:text-lg font-bold text-white">Squad Stats Database</h3>
-                            <p class="text-[10px] md:text-xs text-slate-400 font-medium">All 23 squad members ranked by played history</p>
+                            <h3 class="text-sm md:text-lg font-bold text-white">Master Club Registry</h3>
+                            <p class="text-[10px] md:text-xs text-slate-400 font-medium">All registered players across your club</p>
                         </div>
-                        <div>
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
                             <input 
                                 v-model="squadSearchQuery" 
                                 type="text" 
-                                placeholder="Filter players by name..."
-                                class="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-64">
+                                placeholder="Filter players..."
+                                class="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-48">
+                            <button 
+                                @click="openCreatePlayerModal"
+                                class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap">
+                                <i class="fa-solid fa-plus"></i> Register
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Scrollable Table Body -->
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs md:text-sm text-slate-300">
                             <thead class="bg-slate-950 text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-wider border-b border-slate-800">
@@ -909,10 +901,11 @@
                                     <th class="px-4 py-3 text-center">Goals</th>
                                     <th class="px-4 py-3 text-center">Assists</th>
                                     <th class="px-4 py-3 text-right">Avg Rating</th>
+                                    <th class="px-4 py-3 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-800/80">
-                                <tr v-for="p in filteredSquad" :key="'table-p-'+p.id" class="hover:bg-slate-800/30 transition duration-100">
+                                <tr v-for="p in filteredRegistry" :key="'table-p-'+p.id" class="hover:bg-slate-800/30 transition duration-100">
                                     <td class="px-4 py-3">
                                         <div class="flex items-center gap-2">
                                             <div class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: getCardGlowColor(p.cardType) }"></div>
@@ -936,6 +929,11 @@
                                             {{ p.averageRating > 0 ? p.averageRating.toFixed(2) : 'N/A' }}
                                         </span>
                                     </td>
+                                    <td class="px-4 py-3 text-right">
+                                        <button @click="openMasterEditModal(p.id)" class="text-indigo-400 hover:text-white bg-indigo-900/30 px-2 py-1 rounded">
+                                            <i class="fa-solid fa-pen text-[10px]"></i>
+                                        </button>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -943,13 +941,12 @@
                 </div>
             </div>
 
-            <!-- Cloud Sync & Local Storage Backup Panel -->
             <div v-show="currentTab === 'sync'" class="max-w-2xl mx-auto space-y-6">
                 <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
                     <h2 class="text-base md:text-xl font-bold text-white flex items-center gap-2 mb-2">
                         <i class="fa-solid fa-cloud-arrow-up text-indigo-400"></i> Backup & Storage Settings
                     </h2>
-                    <p class="text-xs text-slate-400">Keep your eFootball Mobile squad and match history safe from browser resets or phone loss.</p>
+                    <p class="text-xs text-slate-400">Keep your eFootball Mobile master registry, squads, and match history safe.</p>
                     
                     <div class="mt-6 space-y-6">
                         <!-- Cloud Status Banner -->
@@ -961,7 +958,7 @@
                             <div class="text-center sm:text-left">
                                 <h4 class="text-sm font-bold text-white">{{ isCloudEnabled ? 'Secure Cloud Sync Active' : 'Offline Mode Active' }}</h4>
                                 <p class="text-xs text-slate-400 mt-1">
-                                    {{ isCloudEnabled ? 'Your progress is being synced in real-time. You can access this layout from other screens.' : 'Data is stored in your browser storage only. Create an manual backup below to avoid losing progress.' }}
+                                    {{ isCloudEnabled ? 'Your progress is being synced in real-time.' : 'Data is stored in your browser storage only. Create a manual backup below to avoid losing progress.' }}
                                 </p>
                             </div>
                         </div>
@@ -969,18 +966,18 @@
                         <!-- Manual JSON Import/Export Backup Tools -->
                         <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-4">
                             <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Manual Device Backups</h4>
-                            <p class="text-[11px] text-slate-400">Export your squad/matches to a text file. You can import this file to load your squad on another phone or computer.</p>
+                            <p class="text-[11px] text-slate-400">Export your club to a text file. Import this file to load your club on another phone.</p>
                             
                             <div class="flex flex-col sm:flex-row gap-3">
                                 <button 
-                                    @click="exportSquadBackup" 
+                                    @click="exportDatabaseBackup" 
                                     class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold py-2 px-4 rounded-lg flex-1 transition flex items-center justify-center gap-2 shadow-md">
                                     <i class="fa-solid fa-file-export"></i> Export Backup (.json)
                                 </button>
                                 
                                 <label class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2 px-4 rounded-lg flex-1 transition flex items-center justify-center gap-2 border border-slate-700 cursor-pointer text-center">
                                     <i class="fa-solid fa-file-import"></i> Import Backup File
-                                    <input type="file" @change="importSquadBackup" class="hidden" accept=".json">
+                                    <input type="file" @change="importDatabaseBackup" class="hidden" accept=".json">
                                 </label>
                             </div>
                         </div>
@@ -988,9 +985,8 @@
                         <!-- Reset / Wipe Database Controls -->
                         <div class="bg-rose-950/10 border border-rose-900/40 p-4 rounded-xl">
                             <h4 class="text-xs font-bold uppercase text-rose-400 tracking-wider mb-1">Danger Zone</h4>
-                            <p class="text-[11px] text-slate-400 mb-4">Wipes the entire match logger database, returning all starters and subs to default settings.</p>
                             <button 
-                                @click="resetSquad" 
+                                @click="resetDatabase" 
                                 class="bg-rose-900/30 hover:bg-rose-900/60 border border-rose-800 text-rose-300 text-xs font-semibold py-2 px-4 rounded-lg transition duration-150">
                                 Wipe Application Database
                             </button>
@@ -1001,108 +997,136 @@
 
         </main>
 
-        <!-- Edit Player Details Modal -->
-        <div v-show="showEditPlayerModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-sm transition duration-200">
-            <div class="bg-slate-900 border-t sm:border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-2xl overflow-hidden transform transition-all pb-safe">
+        <!-- Unified Slot Selection Modal -->
+        <div v-show="showSlotSwapModal" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/90 backdrop-blur-sm transition duration-200">
+            <div class="bg-slate-900 border-t sm:border border-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-2xl overflow-hidden transform transition-all pb-safe max-h-[85vh] flex flex-col">
                 
-                <div class="p-4 border-b border-slate-800 bg-gradient-to-r from-slate-900 to-indigo-950 flex items-center justify-between">
+                <div class="p-4 border-b border-slate-800 bg-gradient-to-r from-slate-900 to-indigo-950 flex items-center justify-between shrink-0">
                     <h3 class="text-sm md:text-lg font-bold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-user-pen text-indigo-400"></i> Edit Player Details
+                        <i class="fa-solid fa-people-arrows text-indigo-400"></i> Manage Squad Slot
                     </h3>
-                    <button @click="closeEditPlayerModal" class="text-slate-400 hover:text-white transition p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+                    <button @click="showSlotSwapModal = false" class="text-slate-400 hover:text-white transition p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
                 </div>
 
-                <!-- Form inside modal -->
-                <form @submit.prevent="savePlayerDetails" class="p-4 space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Player Name</label>
+                <div class="flex border-b border-slate-800 shrink-0">
+                    <button @click="slotModalTab = 'swap'" :class="slotModalTab === 'swap' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400'" class="flex-1 py-3 text-xs font-bold border-b-2 transition">Swap Player</button>
+                    <button @click="slotModalTab = 'edit'" :class="slotModalTab === 'edit' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400'" class="flex-1 py-3 text-xs font-bold border-b-2 transition">Edit Global Stats</button>
+                </div>
+
+                <div class="overflow-y-auto flex-grow p-4">
+                    <!-- Swap Tab -->
+                    <div v-show="slotModalTab === 'swap'" class="space-y-4">
                         <input 
-                            v-model="editForm.name" 
+                            v-model="swapSearchQuery" 
                             type="text" 
-                            required
-                            placeholder="e.g. L. Messi"
-                            class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Position</label>
-                            <select 
-                                v-model="editForm.position" 
-                                class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                                <option v-for="pos in positionsList" :key="pos" :value="pos">{{ pos }}</option>
-                            </select>
+                            placeholder="Search master registry..."
+                            class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 outline-none">
+                        
+                        <div class="space-y-2">
+                            <div v-for="p in swapFilteredRegistry" :key="'swap-'+p.id"
+                                @click="assignPlayerToSlot(p.id)"
+                                class="bg-slate-800/50 hover:bg-slate-700 border border-slate-700 p-2.5 rounded-xl flex items-center justify-between cursor-pointer transition">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-[9px] font-black px-1.5 py-0.5 bg-slate-900 rounded text-slate-400">{{ p.position }}</span>
+                                    <div>
+                                        <div class="text-xs font-bold text-white">{{ p.name }}</div>
+                                        <div class="text-[9px] text-slate-400">{{ p.playstyle || 'No Style' }}</div>
+                                    </div>
+                                </div>
+                                <div class="text-[9px] text-slate-500 border border-slate-700 px-1.5 rounded" v-if="isPlayerInActiveSquad(p.id)">In Squad</div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Card Type</label>
-                            <select 
-                                v-model="editForm.cardType" 
-                                class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                                <option value="Base">Base Card</option>
-                                <option value="Epic">Epic</option>
-                                <option value="Big Time">Big Time</option>
-                                <option value="Show Time">Show Time</option>
-                                <option value="Highlight">Highlight</option>
-                                <option value="Trending">Trending</option>
-                            </select>
+                        <button @click="clearSlot" class="w-full mt-2 py-2 border border-rose-800 text-rose-400 text-xs font-bold rounded-lg bg-rose-950/30 hover:bg-rose-900/50 transition">Remove Player from Slot</button>
+                    </div>
+
+                    <!-- Edit Tab -->
+                    <div v-show="slotModalTab === 'edit'">
+                        <div v-if="!currentSlotPlayerId" class="text-center py-8 text-slate-500 text-xs">No player in this slot to edit.</div>
+                        <form v-else @submit.prevent="saveSlotPlayerEdit" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Global Player Name</label>
+                                <input v-model="editForm.name" type="text" required class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Position</label>
+                                    <select v-model="editForm.position" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                        <option v-for="pos in positionsList" :key="pos" :value="pos">{{ pos }}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Card Type</label>
+                                    <select v-model="editForm.cardType" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                        <option value="Base">Base Card</option>
+                                        <option value="Epic">Epic</option>
+                                        <option value="Big Time">Big Time</option>
+                                        <option value="Show Time">Show Time</option>
+                                        <option value="Highlight">Highlight</option>
+                                        <option value="Trending">Trending</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Playstyle Type</label>
+                                <select v-model="editForm.playstyle" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                                    <option value="">No Playstyle</option>
+                                    <option v-for="style in playstyleList" :key="style" :value="style">{{ style }}</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="w-full py-2.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition duration-150">Save Global Edits</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Squad Modal -->
+        <div v-show="showSquadManager" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-sm transition duration-200">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-5">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                    <h3 class="text-base font-bold text-white"><i class="fa-solid fa-list-ol text-indigo-400 mr-2"></i> Manage Squad Presets</h3>
+                    <button @click="showSquadManager = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                
+                <div class="space-y-3 mb-6 max-h-60 overflow-y-auto">
+                    <div v-for="sq in squads" :key="sq.id" class="flex items-center justify-between bg-slate-800/50 border border-slate-700 p-3 rounded-xl">
+                        <div class="flex items-center gap-2">
+                            <span v-if="activeSquadId === sq.id" class="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_#10b981]"></span>
+                            <span v-else class="w-2 h-2 bg-slate-600 rounded-full"></span>
+                            <span class="text-sm font-bold text-white">{{ sq.name }}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button @click="activeSquadId = sq.id; onSquadSwitch()" v-if="activeSquadId !== sq.id" class="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">Select</button>
+                            <button @click="promptRenameSquad(sq)" class="text-xs text-indigo-400 p-1"><i class="fa-solid fa-pen"></i></button>
+                            <button @click="deleteSquad(sq.id)" v-if="squads.length > 1" class="text-xs text-rose-400 p-1"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
+                </div>
 
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Playstyle Type</label>
-                        <select 
-                            v-model="editForm.playstyle" 
-                            class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                            <option value="">No Playstyle</option>
-                            <option v-for="style in playstyleList" :key="style" :value="style">{{ style }}</option>
-                        </select>
-                    </div>
-
-                    <div class="pt-4 border-t border-slate-800 flex justify-end gap-2.5">
-                        <button 
-                            type="button" 
-                            @click="closeEditPlayerModal" 
-                            class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition duration-150">
-                            Cancel
-                        </button>
-                        <button 
-                            type="submit" 
-                            class="px-5 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition duration-150">
-                            Apply Changes
-                        </button>
-                    </div>
-                </form>
+                <div class="border-t border-slate-800 pt-4 flex gap-2">
+                    <input v-model="newSquadName" type="text" placeholder="New Squad Name..." class="flex-grow bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <button @click="createNewSquad" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition">Create</button>
+                </div>
             </div>
         </div>
 
         <!-- Custom Confirmation Dialog Modal -->
-        <div v-show="showConfirmModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition duration-200">
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden transform transition-all p-5 space-y-4">
+        <div v-show="showConfirmModal" class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition duration-200">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden p-5 space-y-4">
                 <div class="flex items-center gap-3 text-amber-400">
                     <i class="fa-solid fa-circle-question text-2xl"></i>
                     <h3 class="text-base font-bold text-white">{{ confirmTitle }}</h3>
                 </div>
                 <p class="text-xs text-slate-300 leading-relaxed">{{ confirmMessage }}</p>
                 <div class="flex justify-end gap-2.5 pt-2">
-                    <button 
-                        type="button" 
-                        @click="handleConfirmNo" 
-                        class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition duration-150">
-                        Cancel
-                    </button>
-                    <button 
-                        type="button" 
-                        @click="handleConfirmYes" 
-                        class="px-5 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition duration-150">
-                        Confirm
-                    </button>
+                    <button type="button" @click="handleConfirmNo" class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition duration-150">Cancel</button>
+                    <button type="button" @click="handleConfirmYes" class="px-5 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition duration-150">Confirm</button>
                 </div>
             </div>
         </div>
 
     </div>
 
-    <!-- Firestore Cloud Connection Layer -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -1110,7 +1134,7 @@
 
         const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
-        const defaultStarters = [
+        const defaultMasterRegistry = [
             { id: 1, name: "M. ter Stegen", position: "GK", playstyle: "Offensive Goalkeeper", cardType: "Base", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
             { id: 2, name: "A. Davies", position: "LB", playstyle: "Full-back Finisher", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
             { id: 3, name: "Virgil van Dijk", position: "CB", playstyle: "Build Up", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
@@ -1121,10 +1145,7 @@
             { id: 8, name: "F. Valverde", position: "CMF", playstyle: "Box-to-Box", cardType: "Show Time", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
             { id: 9, name: "K. Mbappé", position: "LWF", playstyle: "Goal Poacher", cardType: "Big Time", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
             { id: 10, name: "Erling Haaland", position: "CF", playstyle: "Goal Poacher", cardType: "Trending", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
-            { id: 11, name: "Lionel Messi", position: "RWF", playstyle: "Deep-Lying Forward", cardType: "Big Time", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 }
-        ];
-
-        const defaultSubs = [
+            { id: 11, name: "Lionel Messi", position: "RWF", playstyle: "Deep-Lying Forward", cardType: "Big Time", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
             { id: 12, name: "Ederson", position: "GK", playstyle: "Offensive Goalkeeper", cardType: "Base", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
             { id: 13, name: "J. Gvardiol", position: "CB", playstyle: "Build Up", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
             { id: 14, name: "Trent A-A", position: "RB", playstyle: "Cross Specialist", cardType: "Show Time", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 },
@@ -1139,72 +1160,20 @@
             { id: 23, name: "R. Leão", position: "LWF", playstyle: "Prolific Winger", cardType: "Highlight", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 }
         ];
 
+        const defaultSquad = {
+            id: 'sq_default',
+            name: "Main Dream Team",
+            formation: "4-3-3",
+            starters: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+            subs: [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+        };
+
         const formations = {
-            "4-3-3": {
-                0: { top: '85%', left: '50%' }, // GK
-                1: { top: '65%', left: '15%' }, // LB
-                2: { top: '70%', left: '36%' }, // LCB
-                3: { top: '70%', left: '64%' }, // RCB
-                4: { top: '65%', left: '85%' }, // RB
-                5: { top: '48%', left: '50%' }, // DMF
-                6: { top: '38%', left: '26%' }, // LCMF
-                7: { top: '38%', left: '74%' }, // RCMF
-                8: { top: '15%', left: '20%' }, // LWF
-                9: { top: '10%', left: '50%' }, // CF
-                10: { top: '15%', left: '80%' } // RWF
-            },
-            "4-2-1-3": {
-                0: { top: '85%', left: '50%' }, // GK
-                1: { top: '65%', left: '15%' }, // LB
-                2: { top: '70%', left: '36%' }, // LCB
-                3: { top: '70%', left: '64%' }, // RCB
-                4: { top: '65%', left: '85%' }, // RB
-                5: { top: '52%', left: '35%' }, // LDMF
-                6: { top: '52%', left: '65%' }, // RDMF
-                7: { top: '32%', left: '50%' }, // AMF
-                8: { top: '15%', left: '18%' }, // LWF
-                9: { top: '10%', left: '50%' }, // CF
-                10: { top: '15%', left: '82%' } // RWF
-            },
-            "4-4-2": {
-                0: { top: '85%', left: '50%' }, // GK
-                1: { top: '65%', left: '15%' }, // LB
-                2: { top: '70%', left: '36%' }, // LCB
-                3: { top: '70%', left: '64%' }, // RCB
-                4: { top: '65%', left: '85%' }, // RB
-                5: { top: '42%', left: '15%' }, // LMF
-                6: { top: '46%', left: '38%' }, // LCMF
-                7: { top: '46%', left: '62%' }, // RCMF
-                8: { top: '42%', left: '85%' }, // RMF
-                9: { top: '15%', left: '34%' }, // LCF
-                10: { top: '15%', left: '66%' } // RCF
-            },
-            "3-2-4-1": {
-                0: { top: '85%', left: '50%' }, // GK
-                1: { top: '68%', left: '25%' }, // LCB
-                2: { top: '72%', left: '50%' }, // CB
-                3: { top: '68%', left: '75%' }, // RCB
-                4: { top: '52%', left: '35%' }, // LDMF
-                5: { top: '52%', left: '65%' }, // RDMF
-                6: { top: '32%', left: '15%' }, // LMF
-                7: { top: '30%', left: '38%' }, // LAMF
-                8: { top: '30%', left: '62%' }, // RAMF
-                9: { top: '32%', left: '85%' }, // RMF
-                10: { top: '10%', left: '50%' } // CF
-            },
-            "5-3-2": {
-                0: { top: '85%', left: '50%' }, // GK
-                1: { top: '60%', left: '12%' }, // LWB
-                2: { top: '68%', left: '32%' }, // LCB
-                3: { top: '71%', left: '50%' }, // CB
-                4: { top: '68%', left: '68%' }, // RCB
-                5: { top: '60%', left: '88%' }, // RWB
-                6: { top: '42%', left: '30%' }, // LCMF
-                7: { top: '47%', left: '50%' }, // DMF
-                8: { top: '42%', left: '70%' }, // RCMF
-                9: { top: '15%', left: '35%' }, // LCF
-                10: { top: '15%', left: '65%' } // RCF
-            }
+            "4-3-3": { 0: { top: '85%', left: '50%' }, 1: { top: '65%', left: '15%' }, 2: { top: '70%', left: '36%' }, 3: { top: '70%', left: '64%' }, 4: { top: '65%', left: '85%' }, 5: { top: '48%', left: '50%' }, 6: { top: '38%', left: '26%' }, 7: { top: '38%', left: '74%' }, 8: { top: '15%', left: '20%' }, 9: { top: '10%', left: '50%' }, 10: { top: '15%', left: '80%' } },
+            "4-2-1-3": { 0: { top: '85%', left: '50%' }, 1: { top: '65%', left: '15%' }, 2: { top: '70%', left: '36%' }, 3: { top: '70%', left: '64%' }, 4: { top: '65%', left: '85%' }, 5: { top: '52%', left: '35%' }, 6: { top: '52%', left: '65%' }, 7: { top: '32%', left: '50%' }, 8: { top: '15%', left: '18%' }, 9: { top: '10%', left: '50%' }, 10: { top: '15%', left: '82%' } },
+            "4-4-2": { 0: { top: '85%', left: '50%' }, 1: { top: '65%', left: '15%' }, 2: { top: '70%', left: '36%' }, 3: { top: '70%', left: '64%' }, 4: { top: '65%', left: '85%' }, 5: { top: '42%', left: '15%' }, 6: { top: '46%', left: '38%' }, 7: { top: '46%', left: '62%' }, 8: { top: '42%', left: '85%' }, 9: { top: '15%', left: '34%' }, 10: { top: '15%', left: '66%' } },
+            "3-2-4-1": { 0: { top: '85%', left: '50%' }, 1: { top: '68%', left: '25%' }, 2: { top: '72%', left: '50%' }, 3: { top: '68%', left: '75%' }, 4: { top: '52%', left: '35%' }, 5: { top: '52%', left: '65%' }, 6: { top: '32%', left: '15%' }, 7: { top: '30%', left: '38%' }, 8: { top: '30%', left: '62%' }, 9: { top: '32%', left: '85%' }, 10: { top: '10%', left: '50%' } },
+            "5-3-2": { 0: { top: '85%', left: '50%' }, 1: { top: '60%', left: '12%' }, 2: { top: '68%', left: '32%' }, 3: { top: '71%', left: '50%' }, 4: { top: '68%', left: '68%' }, 5: { top: '60%', left: '88%' }, 6: { top: '42%', left: '30%' }, 7: { top: '47%', left: '50%' }, 8: { top: '42%', left: '70%' }, 9: { top: '15%', left: '35%' }, 10: { top: '15%', left: '65%' } }
         };
 
         const positionsList = ["GK", "CB", "LB", "RB", "LWB", "RWB", "DMF", "CMF", "AMF", "LMF", "RMF", "LWF", "RWF", "SS", "CF"];
@@ -1218,8 +1187,13 @@
         createApp({
             setup() {
                 const currentTab = ref('squad');
-                const squad = ref([...defaultStarters, ...defaultSubs]);
+                
+                // Master Registry & Squad State
+                const masterRegistry = ref([...defaultMasterRegistry]);
+                const squads = ref([{...defaultSquad}]);
+                const activeSquadId = ref('sq_default');
                 const matches = ref([]);
+                
                 const selectedFormation = ref('4-3-3');
                 const showHeatmap = ref(false);
                 const notification = ref(null);
@@ -1232,10 +1206,20 @@
                 const confirmMessage = ref('');
                 const confirmAction = ref(null);
 
-                // Edit Modal state
-                const showEditPlayerModal = ref(false);
-                const editingPlayerIndex = ref(null);
+                // Slot Manager State
+                const showSlotSwapModal = ref(false);
+                const slotModalTab = ref('swap'); // 'swap' or 'edit'
+                const targetSlotType = ref('starter'); // 'starter' or 'sub'
+                const targetSlotIndex = ref(0);
+                const currentSlotPlayerId = ref(null);
+                const swapSearchQuery = ref('');
+                
+                // Edit Modal state (now bound to master registry)
                 const editForm = ref({ name: '', position: '', cardType: '', playstyle: '' });
+
+                // Squad Manager State
+                const showSquadManager = ref(false);
+                const newSquadName = ref('');
 
                 // Match Rating Form
                 const matchForm = ref({
@@ -1253,35 +1237,21 @@
                 let dbInstance = null;
                 let authInstance = null;
                 let activeUserId = null;
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'ef-master-squad-v3';
 
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'efootball-squad-tracker';
-
-                // Displaying clean automated toast notifications
+                // Helpers
                 const showNotification = (type, message) => {
                     notification.value = { type, message };
                     setTimeout(() => {
-                        if (notification.value && notification.value.message === message) {
-                            notification.value = null;
-                        }
+                        if (notification.value && notification.value.message === message) notification.value = null;
                     }, 4000);
                 };
 
-                // Confirm trigger callback handler
                 const triggerConfirm = (title, message, action) => {
-                    confirmTitle.value = title;
-                    confirmMessage.value = message;
-                    confirmAction.value = action;
-                    showConfirmModal.value = true;
+                    confirmTitle.value = title; confirmMessage.value = message; confirmAction.value = action; showConfirmModal.value = true;
                 };
-
-                const handleConfirmYes = () => {
-                    if (confirmAction.value) confirmAction.value();
-                    showConfirmModal.value = false;
-                };
-
-                const handleConfirmNo = () => {
-                    showConfirmModal.value = false;
-                };
+                const handleConfirmYes = () => { if (confirmAction.value) confirmAction.value(); showConfirmModal.value = false; };
+                const handleConfirmNo = () => { showConfirmModal.value = false; };
 
                 const setupFirebase = async () => {
                     if (typeof __firebase_config !== 'undefined' && __firebase_config) {
@@ -1290,223 +1260,229 @@
                             const firebaseApp = initializeApp(firebaseConfig);
                             dbInstance = getFirestore(firebaseApp);
                             authInstance = getAuth(firebaseApp);
-
-                            let authUser = null;
-                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                                authUser = await signInWithCustomToken(authInstance, __initial_auth_token);
-                            } else {
-                                authUser = await signInAnonymously(authInstance);
-                            }
-
+                            let authUser = typeof __initial_auth_token !== 'undefined' && __initial_auth_token ? await signInWithCustomToken(authInstance, __initial_auth_token) : await signInAnonymously(authInstance);
                             if (authUser && authInstance.currentUser) {
-                                activeUserId = authInstance.currentUser.uid;
-                                isCloudEnabled.value = true;
-                                console.log("Firebase Storage Online. User ID:", activeUserId);
+                                activeUserId = authInstance.currentUser.uid; isCloudEnabled.value = true;
                             }
-                        } catch (err) {
-                            console.error("Firebase connection error:", err);
-                        }
+                        } catch (err) { console.error("Firebase connection error:", err); }
                     }
                 };
 
                 const loadState = async () => {
-                    let loadedSquad = null;
-                    let loadedMatches = null;
-                    let loadedFormation = null;
-
-                    if (isCloudEnabled.value && dbInstance && activeUserId) {
+                    let lsData = localStorage.getItem('ef_v3_data');
+                    if (lsData) {
                         try {
-                            const squadDocRef = doc(dbInstance, 'artifacts', appId, 'users', activeUserId, 'squad', 'current');
-                            const matchesDocRef = doc(dbInstance, 'artifacts', appId, 'users', activeUserId, 'matches', 'history');
-
-                            const squadSnap = await getDoc(squadDocRef);
-                            const matchesSnap = await getDoc(matchesDocRef);
-
-                            if (squadSnap.exists()) {
-                                const data = squadSnap.data();
-                                loadedSquad = data.squad;
-                                loadedFormation = data.formation || '4-3-3';
-                            }
-                            if (matchesSnap.exists()) {
-                                loadedMatches = matchesSnap.data().matches;
-                            }
-                        } catch (err) {
-                            console.error("Error reading cloud data:", err);
-                        }
+                            let parsed = JSON.parse(lsData);
+                            masterRegistry.value = parsed.masterRegistry || [...defaultMasterRegistry];
+                            squads.value = parsed.squads || [{...defaultSquad}];
+                            activeSquadId.value = parsed.activeSquadId || squads.value[0].id;
+                            matches.value = parsed.matches || [];
+                        } catch(e) {}
                     }
-
-                    if (!loadedSquad) {
-                        const savedSquad = localStorage.getItem('ef_squad_v2');
-                        if (savedSquad) loadedSquad = JSON.parse(savedSquad);
-                    }
-                    if (!loadedMatches) {
-                        const savedMatches = localStorage.getItem('ef_matches_v2');
-                        if (savedMatches) loadedMatches = JSON.parse(savedMatches);
-                    }
-                    if (!loadedFormation) {
-                        loadedFormation = localStorage.getItem('ef_formation_v2') || '4-3-3';
-                    }
-
-                    squad.value = loadedSquad || [...defaultStarters, ...defaultSubs];
-                    matches.value = loadedMatches || [];
-                    selectedFormation.value = loadedFormation;
                     
-                    initMatchForm();
+                    onSquadSwitch(false); // initializes UI silently
                 };
 
                 const saveState = async () => {
-                    localStorage.setItem('ef_squad_v2', JSON.stringify(squad.value));
-                    localStorage.setItem('ef_matches_v2', JSON.stringify(matches.value));
-                    localStorage.setItem('ef_formation_v2', selectedFormation.value);
+                    // Update current squad config before saving
+                    const activeSq = squads.value.find(s => s.id === activeSquadId.value);
+                    if (activeSq) activeSq.formation = selectedFormation.value;
 
-                    if (isCloudEnabled.value && dbInstance && activeUserId) {
-                        try {
-                            isCloudSyncing.value = true;
-                            const squadDocRef = doc(dbInstance, 'artifacts', appId, 'users', activeUserId, 'squad', 'current');
-                            const matchesDocRef = doc(dbInstance, 'artifacts', appId, 'users', activeUserId, 'matches', 'history');
+                    const payload = {
+                        masterRegistry: masterRegistry.value,
+                        squads: squads.value,
+                        activeSquadId: activeSquadId.value,
+                        matches: matches.value
+                    };
+                    localStorage.setItem('ef_v3_data', JSON.stringify(payload));
+                };
 
-                            await setDoc(squadDocRef, {
-                                squad: squad.value,
-                                formation: selectedFormation.value,
-                                lastUpdated: new Date().toISOString()
-                            });
+                // Core Getters
+                const activeSquad = computed(() => squads.value.find(s => s.id === activeSquadId.value) || squads.value[0]);
+                const startersIds = computed(() => {
+                    const arr = activeSquad.value.starters || [];
+                    while(arr.length < 11) arr.push(null);
+                    return arr.slice(0,11);
+                });
+                const subsIds = computed(() => {
+                    const arr = activeSquad.value.subs || [];
+                    while(arr.length < 12) arr.push(null);
+                    return arr.slice(0,12);
+                });
 
-                            await setDoc(matchesDocRef, {
-                                matches: matches.value,
-                                lastUpdated: new Date().toISOString()
-                            });
-                        } catch (err) {
-                            console.error("Error writing cloud data:", err);
-                        } finally {
-                            isCloudSyncing.value = false;
+                const getPlayerFromMaster = (id) => {
+                    if (!id) return null;
+                    return masterRegistry.value.find(p => p.id === parseInt(id)) || null;
+                };
+
+                const getSquadName = (squadId) => {
+                    const sq = squads.value.find(s => s.id === squadId);
+                    return sq ? sq.name : 'Unknown Squad';
+                };
+
+                const isPlayerInActiveSquad = (id) => {
+                    return activeSquad.value.starters.includes(id) || activeSquad.value.subs.includes(id);
+                };
+
+                const onSquadSwitch = (save = true) => {
+                    if (activeSquad.value.formation) {
+                        selectedFormation.value = activeSquad.value.formation;
+                    }
+                    initMatchForm();
+                    if (save) saveState();
+                };
+
+                const openSquadManager = () => { showSquadManager.value = true; };
+                
+                const createNewSquad = () => {
+                    if (!newSquadName.value.trim()) return;
+                    const newSq = {
+                        id: 'sq_' + Date.now(),
+                        name: newSquadName.value,
+                        formation: selectedFormation.value,
+                        starters: [...activeSquad.value.starters],
+                        subs: [...activeSquad.value.subs]
+                    };
+                    squads.value.push(newSq);
+                    activeSquadId.value = newSq.id;
+                    newSquadName.value = '';
+                    onSquadSwitch();
+                    showNotification('success', 'New squad created from template!');
+                };
+
+                const promptRenameSquad = (sq) => {
+                    const newName = prompt("Rename squad:", sq.name);
+                    if (newName && newName.trim()) {
+                        sq.name = newName.trim();
+                        saveState();
+                    }
+                };
+
+                const deleteSquad = (id) => {
+                    if (squads.value.length <= 1) return;
+                    triggerConfirm('Delete Squad', 'Are you sure you want to delete this squad? This does not delete the players from your club registry.', () => {
+                        squads.value = squads.value.filter(s => s.id !== id);
+                        activeSquadId.value = squads.value[0].id;
+                        onSquadSwitch();
+                    });
+                };
+
+                const openSlotSwapModal = (idx, type) => {
+                    targetSlotIndex.value = idx;
+                    targetSlotType.value = type;
+                    const pId = type === 'starter' ? startersIds.value[idx] : subsIds.value[idx];
+                    currentSlotPlayerId.value = pId;
+                    
+                    swapSearchQuery.value = '';
+                    slotModalTab.value = pId ? 'edit' : 'swap';
+
+                    if (pId) {
+                        const p = getPlayerFromMaster(pId);
+                        if (p) {
+                            editForm.value = { name: p.name, position: p.position, cardType: p.cardType, playstyle: p.playstyle };
+                        }
+                    }
+                    showSlotSwapModal.value = true;
+                };
+
+                const swapFilteredRegistry = computed(() => {
+                    let reg = [...masterRegistry.value];
+                    if (swapSearchQuery.value.trim()) {
+                        const q = swapSearchQuery.value.toLowerCase();
+                        reg = reg.filter(p => p.name.toLowerCase().includes(q) || p.position.toLowerCase().includes(q));
+                    }
+                    // Sort: Available first, then in-squad
+                    return reg.sort((a,b) => {
+                        const aIn = isPlayerInActiveSquad(a.id);
+                        const bIn = isPlayerInActiveSquad(b.id);
+                        if (aIn === bIn) return a.name.localeCompare(b.name);
+                        return aIn ? 1 : -1;
+                    });
+                });
+
+                const assignPlayerToSlot = (newPlayerId) => {
+                    const sq = activeSquad.value;
+                    const currentArray = targetSlotType.value === 'starter' ? sq.starters : sq.subs;
+                    
+                    // Prevent duplicates in same squad
+                    if (isPlayerInActiveSquad(newPlayerId)) {
+                        showNotification('error', 'Player is already somewhere in this squad!');
+                        return;
+                    }
+
+                    currentArray[targetSlotIndex.value] = newPlayerId;
+                    saveState();
+                    initMatchForm();
+                    showSlotSwapModal.value = false;
+                    showNotification('success', 'Slot updated successfully.');
+                };
+
+                const clearSlot = () => {
+                    const sq = activeSquad.value;
+                    const currentArray = targetSlotType.value === 'starter' ? sq.starters : sq.subs;
+                    currentArray[targetSlotIndex.value] = null;
+                    saveState();
+                    initMatchForm();
+                    showSlotSwapModal.value = false;
+                };
+
+                const saveSlotPlayerEdit = async () => {
+                    if (currentSlotPlayerId.value) {
+                        const pIdx = masterRegistry.value.findIndex(p => p.id === currentSlotPlayerId.value);
+                        if (pIdx > -1) {
+                            masterRegistry.value[pIdx] = {
+                                ...masterRegistry.value[pIdx],
+                                name: editForm.value.name,
+                                position: editForm.value.position,
+                                cardType: editForm.value.cardType,
+                                playstyle: editForm.value.playstyle
+                            };
+                            await saveState();
+                            showNotification('success', `Master record for ${editForm.value.name} updated globally!`);
+                            showSlotSwapModal.value = false;
                         }
                     }
                 };
 
-                const starters = computed(() => squad.value.slice(0, 11));
-                const substitutes = computed(() => squad.value.slice(11, 23));
-
-                const getPositionStyle = (idx) => {
-                    const activeForm = formations[selectedFormation.value] || formations["4-3-3"];
-                    return activeForm[idx] || { top: '50%', left: '50%' };
+                const openCreatePlayerModal = () => {
+                    // Create a generic new player, push to master, open edit directly
+                    const newId = Date.now();
+                    const newP = { id: newId, name: "New Player", position: "CMF", playstyle: "", cardType: "Base", averageRating: 0, matchesPlayed: 0, goals: 0, assists: 0 };
+                    masterRegistry.value.push(newP);
+                    saveState();
+                    showNotification('success', 'New player created in registry.');
+                    // Open edit modal for them directly
+                    openMasterEditModal(newId);
                 };
 
-                const getCardClass = (player) => {
-                    if (showHeatmap.value) return '';
-                    switch (player.cardType) {
-                        case 'Epic': return 'card-epic';
-                        case 'Big Time': return 'card-bigtime';
-                        case 'Show Time': return 'card-showtime';
-                        case 'Highlight': return 'card-highlight';
-                        case 'Trending': return 'card-trending';
-                        default: return 'card-base';
-                    }
+                const openMasterEditModal = (pId) => {
+                    // Reuse slot modal logic just focused on edit tab
+                    targetSlotType.value = null; // null means generic edit
+                    currentSlotPlayerId.value = pId;
+                    slotModalTab.value = 'edit';
+                    const p = getPlayerFromMaster(pId);
+                    if (p) editForm.value = { name: p.name, position: p.position, cardType: p.cardType, playstyle: p.playstyle };
+                    showSlotSwapModal.value = true;
                 };
 
-                const getCardIcon = (cardType) => {
-                    switch (cardType) {
-                        case 'Epic': return 'fa-crown';
-                        case 'Big Time': return 'fa-bolt-lightning';
-                        case 'Show Time': return 'fa-wand-magic-sparkles';
-                        case 'Highlight': return 'fa-gem';
-                        case 'Trending': return 'fa-fire';
-                        default: return 'fa-shield-halved';
-                    }
-                };
-
-                const getCardGlowColor = (cardType) => {
-                    switch (cardType) {
-                        case 'Epic': return '#ffd700';
-                        case 'Big Time': return '#ef4444';
-                        case 'Show Time': return '#00f3ff';
-                        case 'Highlight': return '#c084fc';
-                        case 'Trending': return '#10b981';
-                        default: return '#64748b';
-                    }
-                };
-
-                const getRatingBadgeColor = (rating) => {
-                    if (rating >= 7.5) return 'bg-emerald-600 text-white border border-emerald-400';
-                    if (rating >= 6.5) return 'bg-teal-750 text-white';
-                    if (rating >= 5.5) return 'bg-amber-600 text-white';
-                    return 'bg-rose-600 text-white';
-                };
-
-                const getRatingColorClass = (rating) => {
-                    if (rating === 0) return 'bg-slate-800 border-slate-700';
-                    if (rating >= 7.5) return 'bg-emerald-955 border-2 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]';
-                    if (rating >= 6.5) return 'bg-teal-955 border-2 border-teal-500 shadow-[0_0_12px_rgba(20,184,166,0.4)]';
-                    if (rating >= 5.5) return 'bg-amber-955 border-2 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.4)]';
-                    return 'bg-rose-955 border-2 border-rose-600 shadow-[0_0_15px_rgba(239,68,68,0.5)]';
-                };
-
-                const toggleHeatmap = () => {
-                    showHeatmap.value = !showHeatmap.value;
-                };
-
-                // Open Profiles
-                const openEditPlayerModal = (idx) => {
-                    editingPlayerIndex.value = idx;
-                    const p = squad.value[idx];
-                    editForm.value = {
-                        name: p.name,
-                        position: p.position,
-                        cardType: p.cardType,
-                        playstyle: p.playstyle
-                    };
-                    showEditPlayerModal.value = true;
-                };
-
-                const closeEditPlayerModal = () => {
-                    showEditPlayerModal.value = false;
-                    editingPlayerIndex.value = null;
-                };
-
-                const savePlayerDetails = async () => {
-                    if (editingPlayerIndex.value !== null) {
-                        squad.value[editingPlayerIndex.value] = {
-                            ...squad.value[editingPlayerIndex.value],
-                            name: editForm.value.name,
-                            position: editForm.value.position,
-                            cardType: editForm.value.cardType,
-                            playstyle: editForm.value.playstyle
-                        };
-                        await saveState();
-                        await recalculateStats();
-                        showNotification('success', `Player Profile for ${editForm.value.name} updated!`);
-                        closeEditPlayerModal();
-                    }
-                };
 
                 const initMatchForm = () => {
-                    matchForm.value.opponent = '';
-                    matchForm.value.matchType = 'eFootball League';
-                    matchForm.value.ourScore = 0;
-                    matchForm.value.oppScore = 0;
-                    matchForm.value.notes = '';
-                    matchForm.value.ratings = {};
-
-                    squad.value.forEach((p, idx) => {
-                        matchForm.value.ratings[p.id] = {
-                            played: idx < 11,
-                            rating: 6.0,
-                            goals: 0,
-                            assists: 0
-                        };
+                    matchForm.value.opponent = ''; matchForm.value.ourScore = 0; matchForm.value.oppScore = 0; matchForm.value.notes = ''; matchForm.value.ratings = {};
+                    
+                    startersIds.value.forEach(pId => {
+                        if (pId) matchForm.value.ratings[pId] = { played: true, rating: 6.0, goals: 0, assists: 0 };
+                    });
+                    subsIds.value.forEach(pId => {
+                        if (pId) matchForm.value.ratings[pId] = { played: false, rating: 6.0, goals: 0, assists: 0 };
                     });
                 };
 
-                const resetMatchForm = () => {
-                    initMatchForm();
-                    showNotification('success', 'Match ratings form cleared.');
-                };
+                const resetMatchForm = () => { initMatchForm(); showNotification('success', 'Match ratings form cleared.'); };
 
                 const saveMatch = async () => {
                     const matchId = 'match_' + Date.now();
                     const scoreDiff = matchForm.value.ourScore - matchForm.value.oppScore;
-                    let result = 'D';
-                    if (scoreDiff > 0) result = 'W';
-                    if (scoreDiff < 0) result = 'L';
+                    let result = 'D'; if (scoreDiff > 0) result = 'W'; if (scoreDiff < 0) result = 'L';
 
                     const loggedRatings = {};
                     let activeCount = 0;
@@ -1514,23 +1490,16 @@
                     Object.keys(matchForm.value.ratings).forEach(pId => {
                         const original = matchForm.value.ratings[pId];
                         if (original && original.played) {
-                            loggedRatings[pId] = {
-                                rating: Number(original.rating),
-                                goals: parseInt(original.goals) || 0,
-                                assists: parseInt(original.assists) || 0,
-                                played: true
-                            };
+                            loggedRatings[pId] = { rating: Number(original.rating), goals: parseInt(original.goals) || 0, assists: parseInt(original.assists) || 0, played: true };
                             activeCount++;
                         }
                     });
 
-                    if (activeCount === 0) {
-                        showNotification('error', 'Select at least one player who took part in this game!');
-                        return;
-                    }
+                    if (activeCount === 0) { showNotification('error', 'Select at least one player who took part in this game!'); return; }
 
                     const newMatch = {
                         id: matchId,
+                        squadId: activeSquadId.value,
                         opponent: matchForm.value.opponent,
                         matchType: matchForm.value.matchType,
                         ourScore: parseInt(matchForm.value.ourScore),
@@ -1551,30 +1520,22 @@
                 };
 
                 const deleteMatch = async (matchId) => {
-                    triggerConfirm(
-                        'Delete Match Record',
-                        'Are you sure you want to delete this match record? All player averages will be instantly updated.',
-                        async () => {
-                            matches.value = matches.value.filter(m => m.id !== matchId);
-                            await recalculateStats();
-                            await saveState();
-                            showNotification('success', 'Match record successfully deleted.');
-                        }
-                    );
+                    triggerConfirm('Delete Match Record', 'Are you sure? All player averages will update globally.', async () => {
+                        matches.value = matches.value.filter(m => m.id !== matchId);
+                        await recalculateStats();
+                        await saveState();
+                        showNotification('success', 'Match record successfully deleted.');
+                    });
                 };
 
                 const recalculateStats = async () => {
-                    squad.value.forEach(p => {
-                        p.averageRating = 0;
-                        p.matchesPlayed = 0;
-                        p.goals = 0;
-                        p.assists = 0;
-                    });
+                    // Reset Master Registry Stats
+                    masterRegistry.value.forEach(p => { p.averageRating = 0; p.matchesPlayed = 0; p.goals = 0; p.assists = 0; });
 
                     matches.value.forEach(match => {
                         Object.keys(match.playerRatings).forEach(pId => {
                             const playerStat = match.playerRatings[pId];
-                            const playerObj = squad.value.find(p => p.id === parseInt(pId));
+                            const playerObj = masterRegistry.value.find(p => p.id === parseInt(pId));
                             if (playerObj && playerStat.played) {
                                 playerObj.matchesPlayed += 1;
                                 playerObj.goals += playerStat.goals;
@@ -1584,22 +1545,16 @@
                         });
                     });
 
-                    squad.value.forEach(p => {
-                        if (p.matchesPlayed > 0) {
-                            p.averageRating = p.averageRating / p.matchesPlayed;
-                        }
+                    masterRegistry.value.forEach(p => {
+                        if (p.matchesPlayed > 0) p.averageRating = p.averageRating / p.matchesPlayed;
                     });
 
-                    nextTick(() => {
-                        renderTrendChart();
-                    });
+                    nextTick(() => { renderTrendChart(); });
                 };
 
                 const statsSummary = computed(() => {
                     const total = matches.value.length;
-                    if (total === 0) {
-                        return { winRatio: 0, wins: 0, draws: 0, losses: 0, topScorer: { name: 'None', goals: 0 }, topAssister: { name: 'None', assists: 0 }, highestRated: { name: 'None', rating: 0 } };
-                    }
+                    if (total === 0) return { winRatio: 0, wins: 0, draws: 0, losses: 0, topScorer: { name: 'None', goals: 0 }, topAssister: { name: 'None', assists: 0 }, highestRated: { name: 'None', rating: 0 } };
 
                     const wins = matches.value.filter(m => m.result === 'W').length;
                     const draws = matches.value.filter(m => m.result === 'D').length;
@@ -1610,202 +1565,97 @@
                     let topAssister = { name: 'N/A', assists: 0 };
                     let highestRated = { name: 'N/A', rating: 0 };
 
-                    squad.value.forEach(p => {
-                        if (p.goals > topScorer.goals) {
-                            topScorer = { name: p.name, goals: p.goals };
-                        }
-                        if (p.assists > topAssister.assists) {
-                            topAssister = { name: p.name, assists: p.assists };
-                        }
-                        if (p.matchesPlayed >= 1 && p.averageRating > highestRated.rating) {
-                            highestRated = { name: p.name, rating: p.averageRating };
-                        }
+                    masterRegistry.value.forEach(p => {
+                        if (p.goals > topScorer.goals) topScorer = { name: p.name, goals: p.goals };
+                        if (p.assists > topAssister.assists) topAssister = { name: p.name, assists: p.assists };
+                        if (p.matchesPlayed >= 1 && p.averageRating > highestRated.rating) highestRated = { name: p.name, rating: p.averageRating };
                     });
 
                     return { winRatio, wins, draws, losses, topScorer, topAssister, highestRated };
                 });
 
                 const topPerformers = computed(() => {
-                    return [...squad.value]
-                        .filter(p => p.matchesPlayed > 0)
-                        .sort((a, b) => b.averageRating - a.averageRating)
-                        .slice(0, 5);
+                    return [...masterRegistry.value].filter(p => p.matchesPlayed > 0).sort((a, b) => b.averageRating - a.averageRating).slice(0, 5);
                 });
 
-                const filteredSquad = computed(() => {
-                    if (!squadSearchQuery.value.trim()) {
-                        return [...squad.value].sort((a, b) => b.matchesPlayed - a.matchesPlayed);
+                const filteredRegistry = computed(() => {
+                    let reg = [...masterRegistry.value];
+                    if (squadSearchQuery.value.trim()) {
+                        const q = squadSearchQuery.value.toLowerCase();
+                        reg = reg.filter(p => p.name.toLowerCase().includes(q));
                     }
-                    const q = squadSearchQuery.value.toLowerCase();
-                    return squad.value.filter(p => p.name.toLowerCase().includes(q));
+                    return reg.sort((a, b) => b.matchesPlayed - a.matchesPlayed);
                 });
 
                 const getActiveRatingsForMatch = (match) => {
                     const activeList = [];
                     Object.keys(match.playerRatings).forEach(pId => {
                         const record = match.playerRatings[pId];
-                        const player = squad.value.find(p => p.id === parseInt(pId));
+                        const player = getPlayerFromMaster(pId);
                         if (player) {
-                            activeList.push({
-                                id: pId,
-                                name: player.name,
-                                position: player.position,
-                                rating: record.rating,
-                                goals: record.goals,
-                                assists: record.assists
-                            });
+                            activeList.push({ id: pId, name: player.name, position: player.position, rating: record.rating, goals: record.goals, assists: record.assists });
                         }
                     });
                     return activeList.sort((a, b) => b.rating - a.rating);
                 };
 
-                const getResultColorClass = (res) => {
-                    switch (res) {
-                        case 'W': return 'bg-emerald-950 border border-emerald-500 text-emerald-400';
-                        case 'L': return 'bg-rose-950 border border-rose-500 text-rose-400';
-                        default: return 'bg-amber-950 border border-amber-500 text-amber-400';
-                    }
+                const resetDatabase = async () => {
+                    triggerConfirm('Wipe Application Database', 'Warning: This action will permanently erase all matches, custom squads, and your master player registry.', async () => {
+                        localStorage.removeItem('ef_v3_data');
+                        masterRegistry.value = [...defaultMasterRegistry];
+                        squads.value = [{...defaultSquad}];
+                        activeSquadId.value = 'sq_default';
+                        matches.value = [];
+                        await recalculateStats();
+                        showNotification('success', 'Database cleared successfully.');
+                    });
                 };
 
-                const toggleMatchAccordion = (matchId) => {
-                    expandedMatchId.value = expandedMatchId.value === matchId ? null : matchId;
-                };
-
-                const resetSquad = async () => {
-                    triggerConfirm(
-                        'Wipe Application Database',
-                        'Warning: This action will permanently erase all matches and customizations. Proceed?',
-                        async () => {
-                            localStorage.removeItem('ef_squad_v2');
-                            localStorage.removeItem('ef_matches_v2');
-                            localStorage.removeItem('ef_formation_v2');
-                            await loadState();
-                            await recalculateStats();
-                            showNotification('success', 'Database cleared successfully.');
-                        }
-                    );
-                };
-
-                const loadSampleSquad = async () => {
-                    triggerConfirm(
-                        'Load Competitive Meta Squad',
-                        'Load standard setups and sample histories to evaluate performance graphs?',
-                        async () => {
-                            squad.value = JSON.parse(JSON.stringify([...defaultStarters, ...defaultSubs]));
-                            
-                            const sampleMatches = [
-                                {
-                                    id: 'm_sample_1',
-                                    opponent: 'Div 1 Pro Player',
-                                    matchType: 'eFootball League',
-                                    ourScore: 3,
-                                    oppScore: 1,
-                                    result: 'W',
-                                    notes: 'Great match. Haaland double and Messi with an open run goal.',
-                                    date: 'Jul 1, 2026, 04:32 PM',
-                                    playerRatings: {
-                                        1: { rating: 6.5, goals: 0, assists: 0, played: true },
-                                        2: { rating: 6.0, goals: 0, assists: 0, played: true },
-                                        3: { rating: 7.0, goals: 0, assists: 0, played: true },
-                                        4: { rating: 7.5, goals: 0, assists: 0, played: true },
-                                        5: { rating: 6.5, goals: 0, assists: 0, played: true },
-                                        6: { rating: 7.0, goals: 0, assists: 1, played: true },
-                                        7: { rating: 7.5, goals: 0, assists: 1, played: true },
-                                        8: { rating: 6.5, goals: 0, assists: 0, played: true },
-                                        9: { rating: 7.0, goals: 0, assists: 0, played: true },
-                                        10: { rating: 8.5, goals: 2, assists: 0, played: true },
-                                        11: { rating: 8.0, goals: 1, assists: 1, played: true }
-                                    }
-                                },
-                                {
-                                    id: 'm_sample_2',
-                                    opponent: 'AI Superstar Team',
-                                    matchType: 'AI Campaign',
-                                    ourScore: 2,
-                                    oppScore: 2,
-                                    result: 'D',
-                                    notes: 'Tight game. Subbed on Vinicius Jr late on.',
-                                    date: 'Jul 4, 2026, 09:15 PM',
-                                    playerRatings: {
-                                        1: { rating: 5.5, goals: 0, assists: 0, played: true },
-                                        2: { rating: 6.0, goals: 0, assists: 0, played: true },
-                                        3: { rating: 6.5, goals: 0, assists: 0, played: true },
-                                        4: { rating: 6.0, goals: 0, assists: 0, played: true },
-                                        5: { rating: 5.5, goals: 0, assists: 0, played: true },
-                                        6: { rating: 6.5, goals: 0, assists: 0, played: true },
-                                        7: { rating: 7.0, goals: 1, assists: 0, played: true },
-                                        8: { rating: 6.0, goals: 0, assists: 0, played: true },
-                                        9: { rating: 5.5, goals: 0, assists: 0, played: true },
-                                        10: { rating: 6.5, goals: 0, assists: 1, played: true },
-                                        11: { rating: 7.0, goals: 1, assists: 0, played: true },
-                                        18: { rating: 6.5, goals: 0, assists: 1, played: true }
-                                    }
-                                }
-                            ];
-
-                            matches.value = sampleMatches;
-                            await recalculateStats();
-                            await saveState();
-                            showNotification('success', 'Meta configurations loaded successfully.');
-                        }
-                    );
-                };
-
-                const exportSquadBackup = () => {
+                const exportDatabaseBackup = () => {
                     try {
-                        const payload = {
-                            squad: squad.value,
-                            matches: matches.value,
-                            formation: selectedFormation.value,
-                            exportedAt: new Date().toISOString()
-                        };
+                        const payload = { masterRegistry: masterRegistry.value, squads: squads.value, activeSquadId: activeSquadId.value, matches: matches.value, exportedAt: new Date().toISOString() };
                         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
-                        const dlAnchorElem = document.createElement('a');
-                        dlAnchorElem.setAttribute("href", dataStr);
-                        dlAnchorElem.setAttribute("download", `ef_squad_backup_${Date.now()}.json`);
-                        dlAnchorElem.click();
-                        showNotification('success', 'Backup file successfully saved to device downloads.');
-                    } catch (err) {
-                        showNotification('error', 'Error compiling backup details.');
-                    }
+                        const dlAnchorElem = document.createElement('a'); dlAnchorElem.setAttribute("href", dataStr); dlAnchorElem.setAttribute("download", `ef_master_backup_${Date.now()}.json`); dlAnchorElem.click();
+                        showNotification('success', 'Backup file successfully saved.');
+                    } catch (err) { showNotification('error', 'Error compiling backup.'); }
                 };
 
-                const importSquadBackup = (event) => {
-                    const file = event.target.files[0];
-                    if (!file) return;
-
+                const importDatabaseBackup = (event) => {
+                    const file = event.target.files[0]; if (!file) return;
                     const reader = new FileReader();
                     reader.onload = async (e) => {
                         try {
                             const imported = JSON.parse(e.target.result);
-                            if (imported.squad && Array.isArray(imported.squad)) {
-                                squad.value = imported.squad;
+                            if (imported.masterRegistry && imported.squads) {
+                                masterRegistry.value = imported.masterRegistry;
+                                squads.value = imported.squads;
+                                activeSquadId.value = imported.activeSquadId || imported.squads[0].id;
                                 matches.value = imported.matches || [];
-                                selectedFormation.value = imported.formation || '4-3-3';
-                                
-                                await recalculateStats();
-                                await saveState();
-                                showNotification('success', 'Backup JSON successfully compiled and loaded.');
-                            } else {
-                                showNotification('error', 'Unsupported schema configuration in JSON backup.');
-                            }
-                        } catch (err) {
-                            showNotification('error', 'Parsing error reading backup package.');
-                        }
+                                await recalculateStats(); await saveState();
+                                showNotification('success', 'Database backup loaded.');
+                            } else showNotification('error', 'Invalid backup file format.');
+                        } catch (err) { showNotification('error', 'Parsing error reading backup.'); }
                     };
                     reader.readAsText(file);
                 };
 
-                let trendChartInstance = null;
+                // Visual Helpers
+                const getPositionStyle = (idx) => { const activeForm = formations[selectedFormation.value] || formations["4-3-3"]; return activeForm[idx] || { top: '50%', left: '50%' }; };
+                const getCardClass = (player) => { if (showHeatmap.value) return ''; switch (player.cardType) { case 'Epic': return 'card-epic'; case 'Big Time': return 'card-bigtime'; case 'Show Time': return 'card-showtime'; case 'Highlight': return 'card-highlight'; case 'Trending': return 'card-trending'; default: return 'card-base'; } };
+                const getCardIcon = (cardType) => { switch (cardType) { case 'Epic': return 'fa-crown'; case 'Big Time': return 'fa-bolt-lightning'; case 'Show Time': return 'fa-wand-magic-sparkles'; case 'Highlight': return 'fa-gem'; case 'Trending': return 'fa-fire'; default: return 'fa-shield-halved'; } };
+                const getCardGlowColor = (cardType) => { switch (cardType) { case 'Epic': return '#ffd700'; case 'Big Time': return '#ef4444'; case 'Show Time': return '#00f3ff'; case 'Highlight': return '#c084fc'; case 'Trending': return '#10b981'; default: return '#64748b'; } };
+                const getRatingBadgeColor = (rating) => { if (rating >= 7.5) return 'bg-emerald-600 text-white border border-emerald-400'; if (rating >= 6.5) return 'bg-teal-750 text-white'; if (rating >= 5.5) return 'bg-amber-600 text-white'; return 'bg-rose-600 text-white'; };
+                const getRatingColorClass = (rating) => { if (rating === 0) return 'bg-slate-800 border-slate-700'; if (rating >= 7.5) return 'bg-emerald-955 border-2 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]'; if (rating >= 6.5) return 'bg-teal-955 border-2 border-teal-500 shadow-[0_0_12px_rgba(20,184,166,0.4)]'; if (rating >= 5.5) return 'bg-amber-955 border-2 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.4)]'; return 'bg-rose-955 border-2 border-rose-600 shadow-[0_0_15px_rgba(239,68,68,0.5)]'; };
+                const toggleHeatmap = () => { showHeatmap.value = !showHeatmap.value; };
+                const getResultColorClass = (res) => { switch (res) { case 'W': return 'bg-emerald-950 border border-emerald-500 text-emerald-400'; case 'L': return 'bg-rose-950 border border-rose-500 text-rose-400'; default: return 'bg-amber-950 border border-amber-500 text-amber-400'; } };
+                const toggleMatchAccordion = (matchId) => { expandedMatchId.value = expandedMatchId.value === matchId ? null : matchId; };
 
+                // Charts
+                let trendChartInstance = null;
                 const renderTrendChart = () => {
                     const ctx = document.getElementById('formTrendChart');
                     if (!ctx) return;
-
-                    if (trendChartInstance) {
-                        trendChartInstance.destroy();
-                    }
-
+                    if (trendChartInstance) trendChartInstance.destroy();
                     const sortedMatches = [...matches.value].reverse();
                     const labels = sortedMatches.map((m, index) => `G${index+1}: vs ${m.opponent.slice(0, 8)}`);
                     const dataPoints = sortedMatches.map(m => {
@@ -1816,55 +1666,12 @@
 
                     trendChartInstance = new Chart(ctx, {
                         type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Squad Average Rating',
-                                data: dataPoints,
-                                borderColor: '#6366f1',
-                                backgroundColor: 'rgba(99, 102, 241, 0.15)',
-                                borderWidth: 3,
-                                fill: true,
-                                tension: 0.4,
-                                pointBackgroundColor: '#4f46e5',
-                                pointHoverRadius: 7
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            const match = sortedMatches[context.dataIndex];
-                                            return `Avg: ${context.parsed.y} (${match.ourScore}-${match.oppScore})`;
-                                        }
-                                    }
-                                }
-                            },
-                            scales: {
-                                y: {
-                                    min: 4,
-                                    max: 9,
-                                    ticks: { color: '#94a3b8', stepSize: 1 },
-                                    grid: { color: 'rgba(148, 163, 184, 0.1)' }
-                                },
-                                x: {
-                                    ticks: { color: '#94a3b8' },
-                                    grid: { display: false }
-                                }
-                            }
-                        }
+                        data: { labels: labels, datasets: [{ label: 'Global Avg Rating', data: dataPoints, borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.15)', borderWidth: 3, fill: true, tension: 0.4, pointBackgroundColor: '#4f46e5', pointHoverRadius: 7 }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(context) { const match = sortedMatches[context.dataIndex]; return `Avg: ${context.parsed.y} (${match.ourScore}-${match.oppScore})`; } } } }, scales: { y: { min: 4, max: 9, ticks: { color: '#94a3b8', stepSize: 1 }, grid: { color: 'rgba(148, 163, 184, 0.1)' } }, x: { ticks: { color: '#94a3b8' }, grid: { display: false } } } }
                     });
                 };
 
-                watch(currentTab, (newTab) => {
-                    if (newTab === 'analytics') {
-                        nextTick(() => { renderTrendChart(); });
-                    }
-                });
+                watch(currentTab, (newTab) => { if (newTab === 'analytics') nextTick(() => { renderTrendChart(); }); });
 
                 onMounted(async () => {
                     await setupFirebase();
@@ -1874,59 +1681,28 @@
 
                 return {
                     currentTab,
-                    squad,
-                    starters,
-                    substitutes,
-                    formations,
-                    selectedFormation,
-                    showHeatmap,
-                    notification,
-                    expandedMatchId,
-                    squadSearchQuery,
+                    masterRegistry, squads, activeSquadId,
+                    startersIds, subsIds,
+                    getPlayerFromMaster, getSquadName, isPlayerInActiveSquad,
                     
-                    showConfirmModal,
-                    confirmTitle,
-                    confirmMessage,
-                    handleConfirmYes,
-                    handleConfirmNo,
-
-                    isCloudEnabled,
-                    isCloudSyncing,
-                    exportSquadBackup,
-                    importSquadBackup,
-
-                    showEditPlayerModal,
-                    editForm,
-                    openEditPlayerModal,
-                    closeEditPlayerModal,
-                    savePlayerDetails,
-                    positionsList,
-                    playstyleList,
-
-                    matchForm,
-                    resetMatchForm,
-                    saveMatch,
-
-                    matches,
-                    deleteMatch,
-                    getActiveRatingsForMatch,
-                    getResultColorClass,
-                    toggleMatchAccordion,
-
-                    statsSummary,
-                    topPerformers,
-                    filteredSquad,
-
-                    resetSquad,
-                    loadSampleSquad,
-                    toggleHeatmap,
-                    getPositionStyle,
-                    getCardClass,
-                    getCardIcon,
-                    getCardGlowColor,
-                    getRatingBadgeColor,
-                    getRatingColorClass,
-                    showNotification
+                    formations, selectedFormation, showHeatmap, toggleHeatmap,
+                    getPositionStyle, getCardClass, getCardIcon, getCardGlowColor, getRatingBadgeColor, getRatingColorClass, getResultColorClass,
+                    
+                    showSquadManager, newSquadName, openSquadManager, createNewSquad, promptRenameSquad, deleteSquad, onSquadSwitch,
+                    
+                    showSlotSwapModal, slotModalTab, targetSlotType, targetSlotIndex, currentSlotPlayerId,
+                    openSlotSwapModal, swapSearchQuery, swapFilteredRegistry, assignPlayerToSlot, clearSlot,
+                    
+                    editForm, saveSlotPlayerEdit, positionsList, playstyleList, openCreatePlayerModal, openMasterEditModal,
+                    
+                    matchForm, resetMatchForm, saveMatch, matches, deleteMatch, getActiveRatingsForMatch, toggleMatchAccordion, expandedMatchId,
+                    
+                    statsSummary, topPerformers, filteredRegistry, squadSearchQuery,
+                    
+                    showConfirmModal, confirmTitle, confirmMessage, handleConfirmYes, handleConfirmNo,
+                    notification, showNotification,
+                    
+                    isCloudEnabled, isCloudSyncing, exportDatabaseBackup, importDatabaseBackup, resetDatabase, saveState
                 };
             }
         }).mount('#app');
