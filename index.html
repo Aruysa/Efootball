@@ -3,544 +3,315 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>eFootball Mobile Tracker</title>
-    
-    <!-- Dependencies -->
+    <title>eFootball Squad Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0f172a; /* Slate 900 */
-            color: #f8fafc; /* Slate 50 */
-            -webkit-tap-highlight-color: transparent;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        
+        [v-cloak] { display: none !important; }
+        
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-modal { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); }
+        .pitch-bg { 
+            background: linear-gradient(0deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.4) 100%), url('https://images.unsplash.com/photo-1518605368461-1e128224b456?q=80&w=2070&auto=format&fit=crop') center/cover;
+            border: 2px solid rgba(255,255,255,0.1);
         }
         
-        /* Custom Scrollbar for sleek UI */
+        /* Card Types */
+        .card-epic { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        .card-showtime { background: linear-gradient(135deg, #ec4899 0%, #9333ea 100%); color: #fff; }
+        .card-bigtime { background: linear-gradient(135deg, #34d399 0%, #059669 100%); color: #fff; }
+        .card-highlight { background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%); color: #fff; }
+        .card-base { background: linear-gradient(135deg, #94a3b8 0%, #475569 100%); color: #fff; }
+        
+        .player-node { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .player-node:active { transform: scale(0.95); }
+        
+        /* Hide scrollbar for clean mobile view */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-
-        .pitch-bg {
-            background: linear-gradient(180deg, #166534 0%, #14532d 100%);
-            position: relative;
-            overflow: hidden;
-            border: 2px solid #22c55e;
-            box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
-        }
-        .pitch-lines {
-            position: absolute;
-            inset: 0;
-            border: 2px solid rgba(255,255,255,0.2);
-            margin: 10px;
-        }
-        .center-circle {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80px; height: 80px;
-            border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 50%;
-        }
-        .center-line {
-            position: absolute;
-            top: 50%; left: 10px; right: 10px;
-            height: 2px;
-            background: rgba(255,255,255,0.2);
-        }
-        .penalty-box-top, .penalty-box-bottom {
-            position: absolute;
-            left: 50%; transform: translateX(-50%);
-            width: 140px; height: 60px;
-            border: 2px solid rgba(255,255,255,0.2);
-        }
-        .penalty-box-top { top: 10px; border-top: none; }
-        .penalty-box-bottom { bottom: 10px; border-bottom: none; }
-
-        .player-card {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-        }
-        .player-card:active { transform: scale(0.95); }
-        
-        /* Mobile Bottom Nav Spacer */
-        .pb-nav { padding-bottom: 80px; }
-        
-        /* Glassmorphism modal */
-        .glass-modal {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-        
-        /* Gradient Text */
-        .text-gradient {
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
     </style>
 </head>
-<body class="antialiased selection:bg-indigo-500/30">
-    <div id="app" v-cloak class="min-h-screen flex flex-col">
+<body class="pb-24 md:pb-0 md:pt-20">
+    <div id="app" class="min-h-screen" v-cloak>
         
-        <!-- Header -->
-        <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-md">
-            <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.5)]">
-                        <i class="fa-solid fa-futbol text-white text-sm"></i>
+        <!-- Top Nav (Desktop) / Bottom Nav (Mobile) -->
+        <nav class="fixed md:top-0 bottom-0 left-0 w-full z-50 glass-panel border-t md:border-t-0 md:border-b border-slate-700">
+            <div class="max-w-4xl mx-auto px-4">
+                <div class="flex justify-between md:justify-start md:space-x-8 items-center h-16">
+                    <div class="hidden md:flex items-center text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 mr-8">
+                        <i class="fa-solid fa-futbol mr-2 text-indigo-400"></i> eF Tracker
                     </div>
-                    <div>
-                        <h1 class="text-sm md:text-lg font-black tracking-tight text-white leading-tight">eFootball <span class="bg-gradient-to-r from-indigo-400 to-purple-400 text-gradient">Tracker</span></h1>
-                        <p class="text-[9px] md:text-xs text-slate-400 font-semibold uppercase tracking-wider">Mobile Manager</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button @click="showNotification('Syncing not connected in demo')" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center justify-center">
-                        <i class="fa-solid fa-cloud-arrow-up text-xs"></i>
+                    
+                    <button @click="currentTab = 'squad'" :class="currentTab === 'squad' ? 'text-indigo-400' : 'text-slate-400'" class="flex-1 md:flex-none flex flex-col md:flex-row items-center justify-center py-2 transition-colors">
+                        <i class="fa-solid fa-users text-lg md:mr-2 mb-1 md:mb-0"></i>
+                        <span class="text-[10px] md:text-sm font-bold uppercase tracking-wider">Squad</span>
+                    </button>
+                    <button @click="currentTab = 'match'" :class="currentTab === 'match' ? 'text-indigo-400' : 'text-slate-400'" class="flex-1 md:flex-none flex flex-col md:flex-row items-center justify-center py-2 transition-colors">
+                        <i class="fa-solid fa-stopwatch text-lg md:mr-2 mb-1 md:mb-0"></i>
+                        <span class="text-[10px] md:text-sm font-bold uppercase tracking-wider">Play</span>
+                    </button>
+                    <button @click="initCharts(); currentTab = 'stats'" :class="currentTab === 'stats' ? 'text-indigo-400' : 'text-slate-400'" class="flex-1 md:flex-none flex flex-col md:flex-row items-center justify-center py-2 transition-colors">
+                        <i class="fa-solid fa-chart-simple text-lg md:mr-2 mb-1 md:mb-0"></i>
+                        <span class="text-[10px] md:text-sm font-bold uppercase tracking-wider">Stats</span>
+                    </button>
+                    <button @click="currentTab = 'sync'" :class="currentTab === 'sync' ? 'text-indigo-400' : 'text-slate-400'" class="flex-1 md:flex-none flex flex-col md:flex-row items-center justify-center py-2 transition-colors">
+                        <i class="fa-solid fa-cloud text-lg md:mr-2 mb-1 md:mb-0"></i>
+                        <span class="text-[10px] md:text-sm font-bold uppercase tracking-wider">Sync</span>
                     </button>
                 </div>
             </div>
-        </header>
+        </nav>
 
-        <!-- Main Content Area -->
-        <main class="flex-1 max-w-5xl mx-auto w-full p-3 md:p-6 pb-nav md:pb-6">
+        <main class="max-w-4xl mx-auto p-4 space-y-6">
             
-            <!-- TAB: SQUAD BUILDER -->
+            <!-- SQUAD BUILDER TAB -->
             <div v-show="currentTab === 'squad'" class="space-y-4 animate-[fadeIn_0.3s_ease-out]">
                 
-                <!-- Controls & Tactics -->
-                <div class="bg-slate-900 p-3 md:p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col sm:flex-row justify-between items-center gap-3">
-                    <div class="flex items-center gap-2 w-full sm:w-auto">
-                        <button @click="openSquadManager" class="shrink-0 w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition flex items-center justify-center">
-                            <i class="fa-solid fa-layer-group"></i>
+                <!-- Squad Selector & Controls -->
+                <div class="glass-panel rounded-2xl p-4 flex flex-wrap gap-3 items-center justify-between">
+                    <div class="flex items-center space-x-2 w-full sm:w-auto">
+                        <select v-model="activeSquadId" @change="onSquadSwitch" class="bg-slate-800 border border-slate-600 text-white font-bold rounded-lg px-3 py-2 outline-none focus:border-indigo-500 flex-1 sm:flex-none">
+                            <option v-for="sq in squads" :key="sq.id" :value="sq.id">{{ sq.name }}</option>
+                        </select>
+                        <button @click="openSquadManager" class="bg-indigo-600 hover:bg-indigo-500 text-white w-10 h-10 rounded-lg shadow-lg flex items-center justify-center transition">
+                            <i class="fa-solid fa-gear"></i>
                         </button>
-                        <select 
-                            v-model="activeSquadId" 
-                            @change="onSquadSwitch"
-                            class="bg-slate-800 font-bold border border-slate-700 text-white px-3 py-1.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none flex-1 truncate text-sm">
-                            <option v-for="squad in squads" :key="squad.id" :value="squad.id">{{ squad.name }}</option>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2 w-full sm:w-auto mt-2 sm:mt-0">
+                        <select v-model="selectedTeamPlaystyle" @change="saveState" class="bg-slate-800 border border-slate-600 text-xs font-bold text-slate-300 rounded-lg px-3 py-2 outline-none flex-1">
+                            <option value="Quick Counter">Quick Counter</option>
+                            <option value="Possession Game">Possession Game</option>
+                            <option value="Long Ball Counter">Long Ball Counter</option>
+                            <option value="Out Wide">Out Wide</option>
+                            <option value="Long Ball">Long Ball</option>
+                        </select>
+                        <select v-model="selectedFormation" @change="saveState" class="bg-slate-800 border border-slate-600 text-xs font-bold text-slate-300 rounded-lg px-3 py-2 outline-none flex-1">
+                            <option value="4-3-3">4-3-3</option>
+                            <option value="4-2-1-3">4-2-1-3</option>
+                            <option value="4-4-2">4-4-2</option>
+                            <option value="4-2-2-2">4-2-2-2</option>
+                            <option value="4-3-1-2">4-3-1-2</option>
+                            <option value="4-1-2-3">4-1-2-3</option>
+                            <option value="3-2-4-1">3-2-4-1</option>
+                            <option value="5-3-2">5-3-2</option>
                         </select>
                     </div>
+                </div>
 
-                    <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-[10px] font-bold uppercase text-slate-400">Tactics:</label>
-                            <select 
-                                v-model="selectedTeamPlaystyle" 
-                                @change="saveState"
-                                class="bg-slate-800 text-xs border border-slate-700 text-white px-2 py-1.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none max-w-[120px] truncate">
-                                <option v-for="style in teamPlaystylesList" :key="style" :value="style">{{ style }}</option>
-                            </select>
+                <div class="pitch-bg rounded-3xl relative overflow-hidden shadow-2xl" style="padding-bottom: 130%;">
+                    <!-- Pitch Lines -->
+                    <div class="absolute inset-0 opacity-30 pointer-events-none">
+                        <div class="absolute top-1/2 left-0 w-full h-[2px] bg-white transform -translate-y-1/2"></div>
+                        <div class="absolute top-1/2 left-1/2 w-24 h-24 border-2 border-white rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
+                        <div class="absolute top-0 left-1/2 w-40 h-32 border-2 border-white transform -translate-x-1/2"></div>
+                        <div class="absolute bottom-0 left-1/2 w-40 h-32 border-2 border-white transform -translate-x-1/2"></div>
+                    </div>
+
+                    <!-- Starting XI Nodes -->
+                    <div v-for="(playerId, index) in activeSquadStarters" :key="'start'+index" 
+                         @click="openSlotSwapModal('starter', index)"
+                         class="player-node absolute w-14 h-16 sm:w-16 sm:h-20 transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group flex flex-col items-center justify-center"
+                         :style="getPositionStyle(index)">
+                        
+                        <div :class="['w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center border-2 shadow-lg mb-1 relative overflow-hidden z-10', getCardClass(getPlayer(playerId).cardType)]">
+                            <span class="text-[10px] sm:text-xs font-black">{{ getPlayer(playerId).pos }}</span>
                         </div>
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-[10px] font-bold uppercase text-slate-400">Form:</label>
-                            <select 
-                                v-model="selectedFormation" 
-                                @change="saveState"
-                                class="bg-slate-800 text-xs border border-slate-700 text-white px-2 py-1.5 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                                <option v-for="(layout, name) in formations" :key="name" :value="name">{{ name }}</option>
-                            </select>
+                        <div class="bg-black/80 backdrop-blur text-white text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded truncate w-16 text-center border border-slate-700/50 z-20">
+                            {{ getPlayer(playerId).name || 'Empty' }}
                         </div>
                     </div>
-                </div>
-
-                <!-- The Pitch (Starters) -->
-                <div class="pitch-bg rounded-2xl w-full max-w-md mx-auto aspect-[3/4] relative shadow-2xl">
-                    <div class="pitch-lines rounded-lg"></div>
-                    <div class="center-circle"></div>
-                    <div class="center-line"></div>
-                    <div class="penalty-box-top"></div>
-                    <div class="penalty-box-bottom"></div>
-
-                    <!-- Dynamic Starting XI -->
-                    <template v-if="formations[selectedFormation]">
-                        <div v-for="(posInfo, index) in formations[selectedFormation]" :key="'starter-'+index"
-                             class="absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center player-card"
-                             :style="getPositionStyle(posInfo.top, posInfo.left)"
-                             @click="openSlotSwapModal('starter', index, startersIds[index])">
-                            
-                            <!-- Player Node -->
-                            <div v-if="getPlayerFromMaster(startersIds[index])" class="relative group">
-                                <div class="w-9 h-9 md:w-11 md:h-11 rounded-full border-2 flex items-center justify-center bg-slate-800 shadow-lg relative z-10"
-                                     :class="getCardClass(getPlayerFromMaster(startersIds[index]).cardType)">
-                                    <i :class="getCardIcon(getPlayerFromMaster(startersIds[index]).cardType)" class="text-xs md:text-sm"></i>
-                                </div>
-                                <!-- Heatmap Indicator -->
-                                <div v-if="showHeatmap" class="absolute -inset-2 rounded-full opacity-50 blur-md z-0"
-                                     :class="getCardGlowColor(getPlayerFromMaster(startersIds[index]).cardType)"></div>
-                            </div>
-                            
-                            <!-- Empty Node -->
-                            <div v-else class="w-9 h-9 md:w-11 md:h-11 rounded-full border-2 border-dashed border-white/40 bg-black/20 flex items-center justify-center text-white/50 backdrop-blur-sm">
-                                <i class="fa-solid fa-plus text-xs"></i>
-                            </div>
-
-                            <!-- Name Tag -->
-                            <div class="mt-1 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] md:text-[10px] font-bold border border-white/10 text-center shadow-lg truncate max-w-[60px] md:max-w-[70px]">
-                                <span class="text-yellow-400 mr-0.5">{{ posInfo.role }}</span>
-                                <span class="text-white">{{ getPlayerFromMaster(startersIds[index])?.name || 'Empty' }}</span>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-
-                <!-- Heatmap Toggle -->
-                <div class="flex justify-center mt-2">
-                    <button @click="toggleHeatmap" class="text-[10px] bg-slate-800 px-3 py-1.5 rounded-full text-slate-400 border border-slate-700 hover:text-white transition flex items-center gap-1.5 shadow-lg">
-                        <i class="fa-solid fa-fire text-orange-500"></i> Toggle Card Glow
-                    </button>
                 </div>
 
                 <!-- Substitutes Bench -->
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest"><i class="fa-solid fa-chair mr-1"></i> Substitutes (12)</h3>
-                    </div>
-                    <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 md:gap-3">
-                        <div v-for="(pId, index) in subsIds" :key="'sub-'+index" 
-                             class="flex flex-col items-center p-2 rounded-xl border border-slate-800 bg-slate-800/50 hover:bg-slate-800 transition cursor-pointer"
-                             @click="openSlotSwapModal('sub', index, pId)">
-                             
-                            <div v-if="getPlayerFromMaster(pId)" class="w-8 h-8 rounded-full border-2 flex items-center justify-center mb-1 bg-slate-900" :class="getCardClass(getPlayerFromMaster(pId).cardType)">
-                                <i :class="getCardIcon(getPlayerFromMaster(pId).cardType)" class="text-[10px]"></i>
+                <div class="glass-panel rounded-2xl p-4">
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">Substitutes (12)</h3>
+                    <div class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                        <div v-for="(playerId, index) in activeSquadSubs" :key="'sub'+index"
+                             @click="openSlotSwapModal('sub', index)"
+                             class="bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50 rounded-xl p-2 flex flex-col items-center cursor-pointer transition">
+                            <div :class="['w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-black mb-1 shadow', getCardClass(getPlayer(playerId).cardType)]">
+                                {{ getPlayer(playerId).pos }}
                             </div>
-                            <div v-else class="w-8 h-8 rounded-full border-2 border-dashed border-slate-600 bg-slate-800 flex items-center justify-center mb-1 text-slate-500">
-                                <i class="fa-solid fa-plus text-[10px]"></i>
+                            <div class="text-[9px] text-center text-slate-300 font-bold truncate w-full">
+                                {{ getPlayer(playerId).name || 'Empty' }}
                             </div>
-                            
-                            <span class="text-[9px] font-bold text-center w-full truncate text-slate-300">
-                                {{ getPlayerFromMaster(pId)?.name || 'Empty' }}
-                            </span>
-                            <span v-if="getPlayerFromMaster(pId)" class="text-[8px] text-slate-500 font-semibold mt-0.5">
-                                {{ getPlayerFromMaster(pId).position }}
-                            </span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB: LOG MATCH -->
-            <div v-show="currentTab === 'log'" class="space-y-4 animate-[fadeIn_0.3s_ease-out]">
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-                    <div class="bg-indigo-600/20 border-b border-indigo-500/20 p-4">
-                        <h2 class="text-base font-black text-white flex items-center gap-2">
-                            <i class="fa-solid fa-pen-to-square text-indigo-400"></i> Log Match Result
-                        </h2>
-                    </div>
+            <!-- MATCH LOGGER TAB -->
+            <div v-if="currentTab === 'match'" class="space-y-4 animate-[fadeIn_0.3s_ease-out]">
+                <div class="glass-panel rounded-2xl p-4 sm:p-6 shadow-xl">
+                    <h2 class="text-xl font-black mb-4 flex items-center"><i class="fa-solid fa-pen-to-square text-indigo-400 mr-2"></i> Log Match</h2>
                     
-                    <div class="p-4 md:p-5 space-y-5">
-                        <!-- Match Meta Details -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Opponent Username/Team</label>
-                                <input type="text" v-model="matchForm.opponent" placeholder="e.g. xX_Sniper_Xx" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Match Type</label>
-                                <select v-model="matchForm.matchType" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 transition">
-                                    <option>eFootball League</option>
-                                    <option>Event Tour</option>
-                                    <option>Friend Match</option>
-                                    <option>Co-op</option>
-                                </select>
+                    <div class="flex space-x-2 mb-6 bg-slate-800/50 p-1 rounded-xl">
+                        <button @click="matchForm.matchType = 'Division'" :class="matchForm.matchType === 'Division' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'" class="flex-1 py-2 rounded-lg text-xs font-bold transition">Division</button>
+                        <button @click="matchForm.matchType = 'Event'" :class="matchForm.matchType === 'Event' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'" class="flex-1 py-2 rounded-lg text-xs font-bold transition">Event</button>
+                        <button @click="matchForm.matchType = 'Friend Match'" :class="matchForm.matchType === 'Friend Match' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'" class="flex-1 py-2 rounded-lg text-xs font-bold transition">Friendly</button>
+                    </div>
+
+                    <!-- Score Input (Fixed Steppers) -->
+                    <div class="flex items-center justify-between mb-8 bg-slate-900/50 rounded-2xl p-4 border border-slate-800">
+                        <div class="text-center">
+                            <div class="text-[10px] text-slate-400 font-bold uppercase mb-2">My Team</div>
+                            <div class="flex items-center space-x-3">
+                                <button @click="matchForm.goalsFor > 0 ? matchForm.goalsFor-- : null" class="w-8 h-8 rounded-full bg-slate-700 hover:bg-slate-600 text-white font-bold">-</button>
+                                <span class="text-3xl font-black text-indigo-400 w-8">{{ matchForm.goalsFor }}</span>
+                                <button @click="matchForm.goalsFor++" class="w-8 h-8 rounded-full bg-slate-700 hover:bg-slate-600 text-white font-bold">+</button>
                             </div>
                         </div>
-
-                        <!-- Score Steppers (Mobile Friendly) -->
-                        <div class="flex items-center justify-center gap-6 py-4 bg-slate-950/50 rounded-xl border border-slate-800/50">
-                            <div class="text-center">
-                                <label class="block text-[10px] font-bold text-indigo-400 uppercase mb-2">{{ getSquadName(activeSquadId) }}</label>
-                                <div class="flex items-center gap-3">
-                                    <button @click="matchForm.ourScore = Math.max(0, matchForm.ourScore - 1)" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 text-white font-bold text-lg flex items-center justify-center active:bg-slate-700"><i class="fa-solid fa-minus text-sm"></i></button>
-                                    <div class="text-3xl font-black text-white w-10 text-center">{{ matchForm.ourScore }}</div>
-                                    <button @click="matchForm.ourScore++" class="w-10 h-10 rounded-full bg-indigo-600 border border-indigo-500 text-white font-bold text-lg flex items-center justify-center active:bg-indigo-500"><i class="fa-solid fa-plus text-sm"></i></button>
-                                </div>
-                            </div>
-                            <div class="text-xl font-black text-slate-600">-</div>
-                            <div class="text-center">
-                                <label class="block text-[10px] font-bold text-rose-400 uppercase mb-2">Opponent</label>
-                                <div class="flex items-center gap-3">
-                                    <button @click="matchForm.oppScore = Math.max(0, matchForm.oppScore - 1)" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 text-white font-bold text-lg flex items-center justify-center active:bg-slate-700"><i class="fa-solid fa-minus text-sm"></i></button>
-                                    <div class="text-3xl font-black text-white w-10 text-center">{{ matchForm.oppScore }}</div>
-                                    <button @click="matchForm.oppScore++" class="w-10 h-10 rounded-full bg-rose-600 border border-rose-500 text-white font-bold text-lg flex items-center justify-center active:bg-rose-500"><i class="fa-solid fa-plus text-sm"></i></button>
-                                </div>
+                        <div class="text-2xl font-black text-slate-600">VS</div>
+                        <div class="text-center">
+                            <div class="text-[10px] text-slate-400 font-bold uppercase mb-2">Opponent</div>
+                            <div class="flex items-center space-x-3">
+                                <button @click="matchForm.goalsAgainst > 0 ? matchForm.goalsAgainst-- : null" class="w-8 h-8 rounded-full bg-slate-700 hover:bg-slate-600 text-white font-bold">-</button>
+                                <span class="text-3xl font-black text-rose-400 w-8">{{ matchForm.goalsAgainst }}</span>
+                                <button @click="matchForm.goalsAgainst++" class="w-8 h-8 rounded-full bg-slate-700 hover:bg-slate-600 text-white font-bold">+</button>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="border-t border-slate-800 pt-5">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-clipboard-list text-slate-400 mr-2"></i> Player Ratings & G/A</h3>
-                                <p class="text-[10px] text-slate-400 bg-slate-800 px-2 py-1 rounded">MOTM <i class="fa-solid fa-star text-yellow-400 ml-1"></i></p>
-                            </div>
-                            
-                            <!-- Starters Ratings -->
-                            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Starting XI</h4>
-                            <div class="space-y-2 mb-6">
-                                <template v-for="(pId, index) in startersIds" :key="'rate-start-'+index">
-                                    <div v-if="pId && matchForm.ratings && matchForm.ratings[pId]" class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                                        <div class="md:col-span-3 flex items-center justify-between md:justify-start gap-3">
-                                            <div class="flex items-center gap-2">
-                                                <button type="button" @click="matchForm.motm = matchForm.motm === pId ? null : pId" :class="matchForm.motm === pId ? 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'text-slate-600 hover:text-yellow-400/50'" class="transition shrink-0 text-lg" title="Man of the Match">
-                                                    <i class="fa-solid fa-star"></i>
-                                                </button>
-                                                <span class="text-[9px] md:text-xs font-extrabold px-2 py-0.5 rounded-md bg-indigo-900/40 text-indigo-400 w-11 text-center shrink-0">
-                                                    {{ getPlayerFromMaster(pId).position }}
-                                                </span>
-                                            </div>
-                                            <span class="text-xs md:text-sm font-bold text-white truncate max-w-[120px]">{{ getPlayerFromMaster(pId).name }}</span>
-                                        </div>
-                                        
-                                        <div class="md:col-span-6 flex items-center gap-3">
-                                            <span class="text-xs font-black w-8 text-right" :class="getRatingColorClass(matchForm.ratings[pId].rating)">{{ matchForm.ratings[pId].rating.toFixed(1) }}</span>
-                                            <input type="range" min="4.0" max="9.0" step="0.1" v-model.number="matchForm.ratings[pId].rating" class="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
-                                        </div>
-                                        
-                                        <div class="md:col-span-3 flex items-center gap-2 justify-end">
-                                            <div class="flex bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
-                                                <button @click="matchForm.ratings[pId].goals = Math.max(0, matchForm.ratings[pId].goals - 1)" class="px-2 py-1 bg-slate-800 text-slate-400 hover:text-white"><i class="fa-solid fa-minus text-[10px]"></i></button>
-                                                <div class="px-2 py-1 text-xs font-bold w-12 text-center text-amber-500 bg-slate-800/50 flex items-center justify-center gap-1"><i class="fa-solid fa-futbol text-[9px]"></i> {{ matchForm.ratings[pId].goals }}</div>
-                                                <button @click="matchForm.ratings[pId].goals++" class="px-2 py-1 bg-slate-800 text-slate-400 hover:text-white"><i class="fa-solid fa-plus text-[10px]"></i></button>
-                                            </div>
-                                            <div class="flex bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
-                                                <button @click="matchForm.ratings[pId].assists = Math.max(0, matchForm.ratings[pId].assists - 1)" class="px-2 py-1 bg-slate-800 text-slate-400 hover:text-white"><i class="fa-solid fa-minus text-[10px]"></i></button>
-                                                <div class="px-2 py-1 text-xs font-bold w-12 text-center text-blue-400 bg-slate-800/50 flex items-center justify-center gap-1"><i class="fa-solid fa-handshake text-[9px]"></i> {{ matchForm.ratings[pId].assists }}</div>
-                                                <button @click="matchForm.ratings[pId].assists++" class="px-2 py-1 bg-slate-800 text-slate-400 hover:text-white"><i class="fa-solid fa-plus text-[10px]"></i></button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-
-                            <!-- Subs Ratings -->
-                            <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Substitutes (Check box if played)</h4>
-                            <div class="space-y-2">
-                                <template v-for="(pId, index) in subsIds" :key="'rate-sub-'+index">
-                                    <div v-if="pId && matchForm.ratings && matchForm.ratings[pId]" class="bg-slate-800/20 border border-slate-800 rounded-xl p-3 grid grid-cols-1 md:grid-cols-12 gap-3 items-center transition-all duration-300" :class="{'opacity-50 grayscale': !matchForm.ratings[pId].played}">
-                                        
-                                        <div class="md:col-span-3 flex items-center gap-3">
-                                            <label class="relative flex items-center cursor-pointer">
-                                                <input type="checkbox" v-model="matchForm.ratings[pId].played" class="sr-only peer">
-                                                <div class="w-5 h-5 bg-slate-700 border-2 border-slate-600 rounded peer-checked:bg-indigo-500 peer-checked:border-indigo-500 flex items-center justify-center transition">
-                                                    <i class="fa-solid fa-check text-white text-[10px] opacity-0 peer-checked:opacity-100"></i>
-                                                </div>
-                                            </label>
-                                            
-                                            <div class="flex items-center gap-2">
-                                                <button v-show="matchForm.ratings[pId].played" type="button" @click="matchForm.motm = matchForm.motm === pId ? null : pId" :class="matchForm.motm === pId ? 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'text-slate-600 hover:text-yellow-400/50'" class="transition shrink-0 text-lg" title="Man of the Match">
-                                                    <i class="fa-solid fa-star"></i>
-                                                </button>
-                                                <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-slate-700 text-slate-300 w-9 text-center shrink-0">
-                                                    {{ getPlayerFromMaster(pId).position }}
-                                                </span>
-                                            </div>
-                                            <span class="text-xs font-bold text-slate-300 truncate">{{ getPlayerFromMaster(pId).name }}</span>
-                                        </div>
-                                        
-                                        <div v-show="matchForm.ratings[pId].played" class="md:col-span-6 flex items-center gap-3 animate-[fadeIn_0.2s_ease-out]">
-                                            <span class="text-xs font-black w-8 text-right" :class="getRatingColorClass(matchForm.ratings[pId].rating)">{{ matchForm.ratings[pId].rating.toFixed(1) }}</span>
-                                            <input type="range" min="4.0" max="9.0" step="0.1" v-model.number="matchForm.ratings[pId].rating" class="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
-                                        </div>
-                                        
-                                        <div v-show="matchForm.ratings[pId].played" class="md:col-span-3 flex items-center gap-2 justify-end animate-[fadeIn_0.2s_ease-out]">
-                                            <div class="flex bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
-                                                <button @click="matchForm.ratings[pId].goals = Math.max(0, matchForm.ratings[pId].goals - 1)" class="px-2 py-1 bg-slate-800 text-slate-400 hover:text-white"><i class="fa-solid fa-minus text-[10px]"></i></button>
-                                                <div class="px-2 py-1 text-xs font-bold w-12 text-center text-amber-500 bg-slate-800/50"><i class="fa-solid fa-futbol text-[9px]"></i> {{ matchForm.ratings[pId].goals }}</div>
-                                                <button @click="matchForm.ratings[pId].goals++" class="px-2 py-1 bg-slate-800 text-slate-400 hover:text-white"><i class="fa-solid fa-plus text-[10px]"></i></button>
-                                            </div>
-                                            <div class="flex bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
-                                                <button @click="matchForm.ratings[pId].assists = Math.max(0, matchForm.ratings[pId].assists - 1)" class="px-2 py-1 bg-slate-800 text-slate-400 hover:text-white"><i class="fa-solid fa-minus text-[10px]"></i></button>
-                                                <div class="px-2 py-1 text-xs font-bold w-12 text-center text-blue-400 bg-slate-800/50"><i class="fa-solid fa-handshake text-[9px]"></i> {{ matchForm.ratings[pId].assists }}</div>
-                                                <button @click="matchForm.ratings[pId].assists++" class="px-2 py-1 bg-slate-800 text-slate-400 hover:text-white"><i class="fa-solid fa-plus text-[10px]"></i></button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-
+                    <!-- Ratings Grid -->
+                    <div v-if="matchForm.ratings" class="space-y-6">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Tactical Notes</label>
-                            <textarea v-model="matchForm.notes" rows="2" placeholder="e.g. Opponent spammed through balls. Midfield was solid." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition resize-none"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-800/50 p-4 border-t border-slate-800 flex justify-end gap-3">
-                        <button @click="resetMatchForm" class="px-4 py-2 text-xs font-bold text-slate-300 hover:text-white transition">Reset</button>
-                        <button @click="saveMatch" class="px-6 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white text-xs font-bold rounded-lg shadow-[0_0_15px_rgba(99,102,241,0.4)] hover:shadow-[0_0_20px_rgba(99,102,241,0.6)] transition">
-                            Save Match Log
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB: ANALYTICS & HISTORY -->
-            <div v-show="currentTab === 'analytics'" class="space-y-6 animate-[fadeIn_0.3s_ease-out]">
-                
-                <!-- Match History Accordion -->
-                <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
-                    <div class="p-4 md:p-5 border-b border-slate-800 flex justify-between items-center">
-                        <h2 class="text-sm md:text-base font-black text-white flex items-center gap-2">
-                            <i class="fa-solid fa-book-journal-whills text-emerald-400"></i> Match History
-                        </h2>
-                        <span class="text-xs font-bold bg-slate-800 text-slate-300 px-2 py-1 rounded-md">{{ matches.length }} Matches</span>
-                    </div>
-                    
-                    <div v-if="matches.length === 0" class="p-8 text-center text-slate-500">
-                        <i class="fa-solid fa-ghost text-4xl mb-3 opacity-20"></i>
-                        <p class="text-sm">No matches logged yet.</p>
-                    </div>
-
-                    <div v-else class="divide-y divide-slate-800/50">
-                        <div v-for="match in [...matches].reverse()" :key="match.id" class="group">
-                            <!-- Accordion Header -->
-                            <div @click="toggleMatchAccordion(match.id)" class="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-800/30 transition">
-                                <div class="flex items-center gap-3 md:gap-4">
-                                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center font-black text-sm md:text-lg border-2 shadow-lg" :class="getResultColorClass(match.result)">
-                                        {{ match.ourScore }} - {{ match.oppScore }}
-                                    </div>
-                                    <div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider" :class="match.result === 'W' ? 'bg-emerald-500/10 text-emerald-400' : (match.result === 'L' ? 'bg-rose-500/10 text-rose-400' : 'bg-slate-500/10 text-slate-400')">{{ match.result === 'W' ? 'Victory' : (match.result === 'L' ? 'Defeat' : 'Draw') }}</span>
-                                            <span class="text-[10px] text-slate-500">{{ match.date }}</span>
+                            <h3 class="text-xs font-black text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-800 pb-2">Starting XI Ratings</h3>
+                            <div class="space-y-3">
+                                <template v-for="playerId in activeSquadStarters" :key="'mr_start_'+playerId">
+                                    <div v-if="matchForm.ratings[playerId]" class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                                        <div class="flex items-center justify-between w-full sm:w-1/3">
+                                            <div class="flex items-center">
+                                                <div :class="['w-6 h-6 rounded flex items-center justify-center text-[8px] font-black mr-2', getCardClass(getPlayer(playerId).cardType)]">{{ getPlayer(playerId).pos }}</div>
+                                                <div class="text-sm font-bold text-white truncate max-w-[100px]">{{ getPlayer(playerId).name }}</div>
+                                            </div>
+                                            <!-- MOTM Button -->
+                                            <button @click="toggleMOTM(playerId)" :class="matchForm.ratings[playerId].motm ? 'text-yellow-400 scale-110 drop-shadow-md' : 'text-slate-600'" class="transition transform active:scale-95 px-2">
+                                                <i class="fa-solid fa-star text-lg"></i>
+                                            </button>
                                         </div>
-                                        <h4 class="text-xs md:text-sm font-bold text-white mt-1 line-clamp-1">vs {{ match.opponent || 'Unknown Opponent' }}</h4>
-                                        <p class="text-[10px] text-slate-400 mt-0.5">{{ match.matchType }} &bull; Squad: {{ getSquadName(match.squadId) }}</p>
-                                    </div>
-                                </div>
-                                <i class="fa-solid fa-chevron-down text-slate-500 transition-transform duration-300" :class="{'rotate-180': expandedMatchId === match.id}"></i>
-                            </div>
-
-                            <!-- Accordion Body -->
-                            <div v-show="expandedMatchId === match.id" class="px-4 pb-4 pt-1 bg-slate-900/50">
-                                <div v-if="match.notes" class="mb-3 text-[11px] text-slate-400 italic bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
-                                    "{{ match.notes }}"
-                                </div>
-                                <div class="flex flex-wrap gap-2">
-                                    <template v-for="pRating in getActiveRatingsForMatch(match)" :key="'hist-'+match.id+'-'+pRating.id">
-                                        <div class="bg-slate-800 border border-slate-700 rounded-lg p-2 flex items-center gap-2 min-w-[140px] shadow-sm">
-                                            <div class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[8px] font-bold border border-slate-600">
-                                                {{ getPlayerFromMaster(pRating.id)?.position || '?' }}
-                                            </div>
-                                            <div class="flex-1">
-                                                <div class="text-[10px] font-bold text-white truncate w-[70px]">{{ getPlayerFromMaster(pRating.id)?.name || 'Unknown' }}</div>
-                                                <div class="flex gap-1 mt-0.5">
-                                                    <span v-if="pRating.goals > 0" class="text-[9px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded font-black flex items-center gap-0.5">
-                                                        <i class="fa-solid fa-futbol text-[7px]"></i> {{ pRating.goals }}
-                                                    </span>
-                                                    <span v-if="pRating.assists > 0" class="text-[9px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded font-black flex items-center gap-0.5">
-                                                        <i class="fa-solid fa-handshake text-[7px]"></i> {{ pRating.assists }}
-                                                    </span>
-                                                    <span v-if="match.motm === pRating.id" class="text-[9px] bg-yellow-500/10 text-yellow-400 px-1.5 py-0.5 rounded font-black flex items-center gap-0.5">
-                                                        <i class="fa-solid fa-star text-[7px]"></i> MOTM
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <span class="text-xs font-extrabold px-1.5 py-0.5 rounded" :class="getRatingBadgeColor(pRating.rating)">
-                                                {{ pRating.rating.toFixed(1) }}
+                                        
+                                        <div class="flex items-center space-x-2 w-full sm:w-2/3">
+                                            <input type="range" min="3.0" max="9.0" step="0.5" v-model="matchForm.ratings[playerId].rating" class="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                                            <span :class="['w-10 text-center text-xs font-black rounded px-1.5 py-1', getRatingColorClass(matchForm.ratings[playerId].rating)]">
+                                                {{ parseFloat(matchForm.ratings[playerId].rating).toFixed(1) }}
                                             </span>
+                                            
+                                            <!-- Stats Steppers -->
+                                            <div v-if="!['GK','CB'].includes(getPlayer(playerId).pos)" class="flex items-center bg-slate-900 rounded-lg p-1 space-x-1 shrink-0">
+                                                <i class="fa-solid fa-futbol text-[10px] text-slate-400 ml-1"></i>
+                                                <button @click="matchForm.ratings[playerId].goals > 0 ? matchForm.ratings[playerId].goals-- : null" class="w-5 h-5 bg-slate-700 rounded text-xs leading-none">-</button>
+                                                <span class="text-xs font-bold w-3 text-center">{{ matchForm.ratings[playerId].goals }}</span>
+                                                <button @click="matchForm.ratings[playerId].goals++" class="w-5 h-5 bg-slate-700 rounded text-xs leading-none">+</button>
+                                            </div>
                                         </div>
-                                    </template>
-                                </div>
-                                <div class="mt-3 flex justify-end">
-                                    <button @click="deleteMatch(match.id)" class="text-[10px] text-rose-500 hover:text-rose-400 font-bold px-3 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 transition">Delete Record</button>
-                                </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-xs font-black text-slate-400 uppercase tracking-wider mb-3 border-b border-slate-800 pb-2">Substitutes Used</h3>
+                            <div class="space-y-3">
+                                <template v-for="playerId in activeSquadSubs" :key="'mr_sub_'+playerId">
+                                    <div v-if="matchForm.ratings[playerId]" class="bg-slate-800/30 border border-slate-700/30 rounded-xl p-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                                        <div class="flex items-center space-x-3 w-full sm:w-1/3">
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" v-model="matchForm.ratings[playerId].played" class="sr-only peer">
+                                                <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
+                                            </label>
+                                            <div class="text-xs font-bold text-slate-300 truncate">{{ getPlayer(playerId).name }}</div>
+                                        </div>
+                                        
+                                        <div v-if="matchForm.ratings[playerId].played" class="flex items-center space-x-2 w-full sm:w-2/3 animate-[fadeIn_0.2s_ease-out]">
+                                            <input type="range" min="3.0" max="9.0" step="0.5" v-model="matchForm.ratings[playerId].rating" class="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                                            <span :class="['w-10 text-center text-xs font-black rounded px-1.5 py-1', getRatingColorClass(matchForm.ratings[playerId].rating)]">
+                                                {{ parseFloat(matchForm.ratings[playerId].rating).toFixed(1) }}
+                                            </span>
+                                            
+                                            <!-- Stats Steppers -->
+                                            <div v-if="!['GK','CB'].includes(getPlayer(playerId).pos)" class="flex items-center bg-slate-900 rounded-lg p-1 space-x-1 shrink-0">
+                                                <i class="fa-solid fa-futbol text-[10px] text-slate-400 ml-1"></i>
+                                                <button @click="matchForm.ratings[playerId].goals > 0 ? matchForm.ratings[playerId].goals-- : null" class="w-5 h-5 bg-slate-700 rounded text-xs leading-none">-</button>
+                                                <span class="text-xs font-bold w-3 text-center">{{ matchForm.ratings[playerId].goals }}</span>
+                                                <button @click="matchForm.ratings[playerId].goals++" class="w-5 h-5 bg-slate-700 rounded text-xs leading-none">+</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Radar Chart & Player Comparison -->
-                <div class="bg-slate-900 p-4 md:p-5 rounded-2xl border border-slate-800 shadow-xl mt-6">
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
-                        <div>
-                            <h3 class="text-sm md:text-lg font-bold text-white flex items-center gap-2 mb-1">
-                                <i class="fa-solid fa-bullseye text-pink-500"></i> Head-to-Head Comparison
-                            </h3>
-                            <p class="text-[10px] md:text-xs text-slate-400">Compare stats (metrics are normalized for charting)</p>
-                        </div>
-                        <div class="flex items-center gap-2 w-full sm:w-auto">
-                            <select v-model="comparePlayer1" @change="renderRadarChart" class="bg-slate-800 border border-slate-700 text-white rounded-lg px-2 py-1.5 text-xs outline-none flex-1 font-semibold max-w-[130px] truncate">
-                                <option v-for="p in masterRegistry" :key="'p1-'+p.id" :value="p.id">{{ p.name }}</option>
-                            </select>
-                            <span class="text-[10px] font-bold text-slate-500 uppercase">VS</span>
-                            <select v-model="comparePlayer2" @change="renderRadarChart" class="bg-slate-800 border border-slate-700 text-white rounded-lg px-2 py-1.5 text-xs outline-none flex-1 font-semibold max-w-[130px] truncate">
-                                <option v-for="p in masterRegistry" :key="'p2-'+p.id" :value="p.id">{{ p.name }}</option>
-                            </select>
-                        </div>
+                    <button @click="saveMatch" class="w-full mt-6 py-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-black rounded-xl shadow-lg shadow-indigo-500/30 transition transform active:scale-[0.98]">
+                        SAVE MATCH DATA
+                    </button>
+                </div>
+            </div>
+
+            <!-- STATS TAB -->
+            <div v-show="currentTab === 'stats'" class="space-y-6 pb-10 animate-[fadeIn_0.3s_ease-out]">
+                
+                <!-- Radar Chart Card -->
+                <div class="glass-panel rounded-2xl p-4 sm:p-6 shadow-xl">
+                    <h3 class="text-sm font-black text-white mb-4"><i class="fa-solid fa-radar text-indigo-400 mr-2"></i> Player Comparison</h3>
+                    <div class="flex space-x-2 mb-4">
+                        <select v-model="radarPlayer1" @change="updateRadarChart" class="flex-1 bg-slate-800 border border-indigo-500/50 text-xs text-white rounded-lg p-2 outline-none">
+                            <option value="">Select Player 1...</option>
+                            <option v-for="p in sortedRegistry" :key="'r1'+p.id" :value="p.id">{{ p.name }}</option>
+                        </select>
+                        <select v-model="radarPlayer2" @change="updateRadarChart" class="flex-1 bg-slate-800 border border-emerald-500/50 text-xs text-white rounded-lg p-2 outline-none">
+                            <option value="">Select Player 2...</option>
+                            <option v-for="p in sortedRegistry" :key="'r2'+p.id" :value="p.id">{{ p.name }}</option>
+                        </select>
                     </div>
-                    <div class="relative h-64 sm:h-80 w-full flex justify-center">
+                    <div class="w-full max-w-sm mx-auto aspect-square relative">
                         <canvas id="playerRadarChart"></canvas>
                     </div>
                 </div>
 
                 <!-- Master Registry Table -->
-                <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden mt-6">
-                    <div class="p-4 md:p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div>
-                            <h2 class="text-sm md:text-base font-black text-white flex items-center gap-2">
-                                <i class="fa-solid fa-database text-purple-400"></i> Master Club Registry
-                            </h2>
-                            <p class="text-[10px] text-slate-400 mt-1">All registered players and their global statistics.</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="relative">
-                                <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 text-xs"></i>
-                                <input type="text" v-model="squadSearchQuery" placeholder="Search roster..." class="bg-slate-800 border border-slate-700 text-white text-xs rounded-lg pl-8 pr-3 py-2 w-[140px] focus:w-[180px] transition-all outline-none focus:border-indigo-500">
-                            </div>
-                            <button @click="openCreatePlayerModal" class="bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 border border-purple-500/30 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1">
-                                <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Register</span>
-                            </button>
-                        </div>
+                <div class="glass-panel rounded-2xl p-4 sm:p-6 shadow-xl overflow-hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-black text-white"><i class="fa-solid fa-address-book text-indigo-400 mr-2"></i> Master Registry</h3>
+                        <button @click="openSlotSwapModal('new', -1)" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white rounded-lg shadow transition">+ Register</button>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm whitespace-nowrap">
-                            <thead class="bg-slate-800/50 text-[10px] uppercase font-black text-slate-400">
+                        <table class="w-full text-left text-xs whitespace-nowrap">
+                            <thead class="text-slate-400 border-b border-slate-700">
                                 <tr>
-                                    <th class="px-4 py-3 rounded-tl-lg">Player</th>
-                                    <th class="px-4 py-3 text-center">Type</th>
-                                    <th class="px-4 py-3 text-center">Games</th>
-                                    <th class="px-4 py-3 text-center">Goals</th>
-                                    <th class="px-4 py-3 text-center">Assists</th>
-                                    <th class="px-4 py-3 text-center">MOTM</th>
-                                    <th class="px-4 py-3 text-right">Avg Rating</th>
-                                    <th class="px-4 py-3 text-center">Edit</th>
+                                    <th class="pb-2 font-bold uppercase">Player</th>
+                                    <th class="pb-2 font-bold uppercase text-center">GP</th>
+                                    <th class="pb-2 font-bold uppercase text-center"><i class="fa-solid fa-futbol text-slate-300"></i></th>
+                                    <th class="pb-2 font-bold uppercase text-center"><i class="fa-solid fa-handshake text-slate-300"></i></th>
+                                    <th class="pb-2 font-bold uppercase text-center"><i class="fa-solid fa-star text-yellow-500"></i></th>
+                                    <th class="pb-2 font-bold uppercase text-center">Avg</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-800/50">
-                                <tr v-for="p in filteredRegistry" :key="'reg-'+p.id" class="hover:bg-slate-800/30 transition">
-                                    <td class="px-4 py-3">
-                                        <div class="flex items-center gap-2">
-                                            <span class="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-[9px] font-bold border border-slate-600">{{ p.position }}</span>
-                                            <div>
-                                                <div class="font-bold text-white text-xs">{{ p.name }}</div>
-                                                <div class="text-[9px] text-slate-500">{{ p.playstyle }}</div>
-                                            </div>
-                                        </div>
+                                <tr v-for="player in sortedRegistry" :key="player.id" class="hover:bg-slate-800/30 transition">
+                                    <td class="py-3 flex items-center">
+                                        <div :class="['w-5 h-5 rounded flex items-center justify-center text-[7px] font-black mr-2', getCardClass(player.cardType)]">{{ player.pos }}</div>
+                                        <div class="font-bold text-white truncate max-w-[120px]">{{ player.name }}</div>
                                     </td>
-                                    <td class="px-4 py-3 text-center">
-                                        <i :class="getCardIcon(p.cardType)" class="text-xs" :title="p.cardType"></i>
-                                    </td>
-                                    <td class="px-4 py-3 text-center font-bold text-slate-300">{{ p.matchesPlayed }}</td>
-                                    <td class="px-4 py-3 text-center text-amber-500 font-bold">{{ p.goals }}</td>
-                                    <td class="px-4 py-3 text-center text-blue-400 font-bold">{{ p.assists }}</td>
-                                    <td class="px-4 py-3 text-center text-yellow-400 font-bold">{{ p.motm || 0 }}</td>
-                                    <td class="px-4 py-3 text-right">
-                                        <span class="text-xs font-extrabold px-2 py-1 rounded" :class="getRatingBadgeColor(p.averageRating)">
-                                            {{ p.matchesPlayed > 0 ? p.averageRating.toFixed(2) : '-' }}
+                                    <td class="py-3 text-center text-slate-300 font-bold">{{ player.matches }}</td>
+                                    <td class="py-3 text-center text-slate-300">{{ player.goals }}</td>
+                                    <td class="py-3 text-center text-slate-300">{{ player.assists }}</td>
+                                    <td class="py-3 text-center text-yellow-400 font-bold">{{ player.motmAwards || 0 }}</td>
+                                    <td class="py-3 text-center">
+                                        <span :class="['px-1.5 py-0.5 rounded font-black', getRatingColorClass(player.matches > 0 ? (player.totalRating / player.matches) : 0)]">
+                                            {{ player.matches > 0 ? (player.totalRating / player.matches).toFixed(2) : '-' }}
                                         </span>
                                     </td>
-                                    <td class="px-4 py-3 text-center">
-                                        <button @click="openMasterEditModal(p)" class="w-7 h-7 rounded-md bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition">
-                                            <i class="fa-solid fa-pen text-[10px]"></i>
-                                        </button>
-                                    </td>
+                                </tr>
+                                <tr v-if="masterRegistry.length === 0">
+                                    <td colspan="6" class="py-4 text-center text-slate-500">No players registered yet.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -548,570 +319,624 @@
                 </div>
             </div>
 
-            <!-- MODALS -->
+            <!-- SYNC TAB -->
+            <div v-show="currentTab === 'sync'" class="space-y-4 animate-[fadeIn_0.3s_ease-out]">
+                <div class="glass-panel rounded-2xl p-6 shadow-xl text-center">
+                    <i class="fa-solid fa-database text-4xl text-indigo-400 mb-4"></i>
+                    <h2 class="text-xl font-black text-white mb-2">Cloud Sync & Backup</h2>
+                    <p class="text-xs text-slate-400 mb-6 max-w-sm mx-auto">Export your database to keep your squads and match history safe if you switch devices.</p>
+                    
+                    <div class="space-y-3">
+                        <button @click="exportData" class="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-sm font-bold rounded-xl transition flex justify-center items-center">
+                            <i class="fa-solid fa-file-export mr-2 text-emerald-400"></i> Export Backup (.json)
+                        </button>
+                        
+                        <label class="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-sm font-bold rounded-xl transition flex justify-center items-center cursor-pointer">
+                            <i class="fa-solid fa-file-import mr-2 text-blue-400"></i> Import Backup File
+                            <input type="file" accept=".json" @change="importData" class="hidden">
+                        </label>
+                        
+                        <button @click="factoryReset" class="w-full py-3 mt-4 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/50 text-rose-400 text-sm font-bold rounded-xl transition flex justify-center items-center">
+                            <i class="fa-solid fa-triangle-exclamation mr-2"></i> Factory Reset Data
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-            <!-- Slot Action Modal (Swap/Edit/Create) -->
-            <div v-if="showSlotSwapModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 glass-modal animate-[fadeIn_0.2s_ease-out]">
-                <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <!-- MODALS -->
+            
+            <!-- Squad Manager Modal -->
+            <div v-if="showSquadManager" class="fixed inset-0 z-[60] flex items-center justify-center p-4 glass-modal animate-[fadeIn_0.2s_ease-out]">
+                <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
                     <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
-                        <h3 class="text-sm font-black text-white">
-                            <span v-if="targetSlotType === 'starter'">Starting XI - Slot {{ targetSlotIndex + 1 }}</span>
-                            <span v-else>Bench - Slot {{ targetSlotIndex + 1 }}</span>
-                        </h3>
-                        <button @click="showSlotSwapModal = false" class="text-slate-400 hover:text-white w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-800 transition"><i class="fa-solid fa-xmark"></i></button>
+                        <h3 class="text-sm font-black text-white"><i class="fa-solid fa-layer-group text-indigo-400 mr-2"></i>Squad Manager</h3>
+                        <button @click="showSquadManager = false" class="text-slate-400 hover:text-white w-8 h-8 rounded-full hover:bg-slate-800 transition"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1.5">Create New Squad</label>
+                            <div class="flex gap-2">
+                                <input type="text" v-model="newSquadName" placeholder="e.g., GP Farm Team" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500">
+                                <button @click="createNewSquad" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition shadow-lg">Create</button>
+                            </div>
+                        </div>
+                        <div class="border-t border-slate-800 pt-4">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2">Existing Squads</label>
+                            <div class="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+                                <div v-for="squad in squads" :key="squad.id" class="flex items-center justify-between bg-slate-800/50 border border-slate-700/50 p-2.5 rounded-xl">
+                                    <div class="text-xs font-bold text-white truncate mr-2">{{ squad.name }}</div>
+                                    <button v-if="squads.length > 1" @click="deleteSquad(squad.id)" class="shrink-0 w-7 h-7 flex items-center justify-center bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 rounded-md transition"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slot Action Modal -->
+            <div v-if="showSlotSwapModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 glass-modal animate-[fadeIn_0.2s_ease-out]">
+                <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                    <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
+                        <h3 class="text-sm font-black text-white">Player Configuration</h3>
+                        <button @click="showSlotSwapModal = false" class="text-slate-400 hover:text-white w-8 h-8 rounded-full hover:bg-slate-800 transition"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                     
-                    <div class="flex border-b border-slate-800 text-xs font-bold text-slate-400">
-                        <button @click="slotModalTab = 'swap'" :class="{'text-indigo-400 border-b-2 border-indigo-500 bg-indigo-500/5': slotModalTab === 'swap'}" class="flex-1 py-3 transition">Swap Player</button>
-                        <button @click="slotModalTab = 'edit'" :class="{'text-indigo-400 border-b-2 border-indigo-500 bg-indigo-500/5': slotModalTab === 'edit'}" class="flex-1 py-3 transition">Edit Player</button>
+                    <div class="flex border-b border-slate-800 text-[10px] font-bold uppercase">
+                        <button @click="slotModalTab = 'swap'" :class="slotModalTab === 'swap' ? 'text-indigo-400 border-b-2 border-indigo-500' : 'text-slate-500'" class="flex-1 py-3 transition">Swap Existing</button>
+                        <button @click="slotModalTab = 'edit'" :class="slotModalTab === 'edit' ? 'text-indigo-400 border-b-2 border-indigo-500' : 'text-slate-500'" class="flex-1 py-3 transition">Edit / Register</button>
                     </div>
 
-                    <!-- Swap Tab -->
-                    <div v-if="slotModalTab === 'swap'" class="p-4 flex-1 overflow-y-auto min-h-[300px]">
-                        <div class="mb-3">
-                            <input type="text" v-model="swapSearchQuery" placeholder="Search master registry..." class="w-full bg-slate-800 border border-slate-700 text-white text-xs rounded-lg px-3 py-2 outline-none focus:border-indigo-500">
-                        </div>
-                        <div class="space-y-1">
-                            <button @click="clearSlot" class="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 transition text-left group">
-                                <div class="w-8 h-8 rounded-full border border-dashed border-rose-500/50 flex items-center justify-center text-rose-500 group-hover:bg-rose-500/20"><i class="fa-solid fa-trash text-xs"></i></div>
-                                <div><div class="text-xs font-bold text-rose-500">Clear Slot</div><div class="text-[10px] text-slate-500">Leave position empty</div></div>
-                            </button>
-                            <div v-for="p in swapFilteredRegistry" :key="'swap-'+p.id" @click="assignPlayerToSlot(p.id)" class="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-800 border border-transparent transition text-left cursor-pointer" :class="{'bg-indigo-500/10 border-indigo-500/30': isPlayerInActiveSquad(p.id)}">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border" :class="getCardClass(p.cardType)"><i :class="getCardIcon(p.cardType)"></i></div>
-                                    <div>
-                                        <div class="text-xs font-bold text-white">{{ p.name }}</div>
-                                        <div class="text-[10px] text-slate-400 flex items-center gap-1">
-                                            <span class="bg-slate-700 px-1 rounded">{{ p.position }}</span> 
-                                            <span>{{ p.playstyle }}</span>
-                                        </div>
+                    <div class="p-4 overflow-y-auto">
+                        <!-- Swap Tab -->
+                        <div v-if="slotModalTab === 'swap'" class="space-y-2">
+                            <input type="text" v-model="playerSearchQuery" placeholder="Search registry..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 mb-3">
+                            <div class="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
+                                <div v-for="p in filteredRegistry" :key="'swap'+p.id" @click="assignPlayerToSlot(p.id)" class="flex items-center p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700 cursor-pointer border border-slate-700/50 transition">
+                                    <div :class="['w-6 h-6 rounded shrink-0 flex items-center justify-center text-[8px] font-black mr-3 shadow', getCardClass(p.cardType)]">{{ p.pos }}</div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs font-bold text-white truncate">{{ p.name }}</div>
+                                        <div class="text-[9px] text-slate-400">{{ p.playstyle }}</div>
                                     </div>
+                                    <div class="text-[10px] font-bold text-indigo-400 bg-indigo-400/10 px-2 py-0.5 rounded">{{ p.matches }} GP</div>
                                 </div>
-                                <div v-if="isPlayerInActiveSquad(p.id)" class="text-[9px] font-bold bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded">In Squad</div>
+                                <div v-if="filteredRegistry.length === 0" class="text-center text-xs text-slate-500 py-4">No players found.</div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Edit/Create Tab -->
-                    <div v-if="slotModalTab === 'edit'" class="p-4 flex-1 overflow-y-auto">
-                        <div v-if="!currentSlotPlayerId" class="text-center py-8">
-                            <i class="fa-solid fa-user-plus text-3xl text-slate-600 mb-3"></i>
-                            <p class="text-xs text-slate-400 mb-4">Slot is empty. Register a new player?</p>
-                            <button @click="openCreatePlayerModal(true)" class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-lg shadow-indigo-500/30">Register New Player</button>
-                        </div>
-                        <div v-else class="space-y-4">
-                            <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Player Name</label><input type="text" v-model="editForm.name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"></div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Position</label><select v-model="editForm.position" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"><option v-for="pos in positionsList" :key="pos" :value="pos">{{ pos }}</option></select></div>
-                                <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Card Type</label><select v-model="editForm.cardType" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"><option value="Base">Base</option><option value="Highlight">Highlight</option><option value="Epic">Epic</option><option value="Big Time">Big Time</option><option value="Show Time">Show Time</option></select></div>
+                        <!-- Edit Tab -->
+                        <div v-if="slotModalTab === 'edit'" class="space-y-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Player Name</label>
+                                <input type="text" v-model="editPlayerData.name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500">
                             </div>
-                            <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Playstyle</label><select v-model="editForm.playstyle" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"><option v-for="style in playstyleList" :key="style" :value="style">{{ style }}</option></select></div>
-                            <button @click="saveSlotPlayerEdit" class="w-full py-2.5 mt-2 bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-lg shadow-indigo-500/30">Save to Master Registry</button>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Position</label>
+                                    <select v-model="editPlayerData.pos" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
+                                        <option value="CF">CF</option><option value="SS">SS</option><option value="LWF">LWF</option><option value="RWF">RWF</option>
+                                        <option value="AMF">AMF</option><option value="CMF">CMF</option><option value="LMF">LMF</option><option value="RMF">RMF</option><option value="DMF">DMF</option>
+                                        <option value="LB">LB</option><option value="RB">RB</option><option value="CB">CB</option><option value="GK">GK</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Card Type</label>
+                                    <select v-model="editPlayerData.cardType" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
+                                        <option value="base">Base</option><option value="highlight">Highlight</option><option value="epic">Epic</option><option value="bigtime">Big Time</option><option value="showtime">Show Time</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Playstyle</label>
+                                <select v-model="editPlayerData.playstyle" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
+                                    <option value="Goal Poacher">Goal Poacher</option><option value="Fox in the Box">Fox in the Box</option><option value="Hole Player">Hole Player</option>
+                                    <option value="Creative Playmaker">Creative Playmaker</option><option value="Orchestrator">Orchestrator</option><option value="Box-to-Box">Box-to-Box</option>
+                                    <option value="Anchor Man">Anchor Man</option><option value="Build Up">Build Up</option><option value="Destroyer">Destroyer</option>
+                                    <option value="Offensive GK">Offensive GK</option><option value="Defensive GK">Defensive GK</option><option value="None">None</option>
+                                </select>
+                            </div>
+                            <button @click="savePlayerDetails" class="w-full mt-2 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition shadow-lg">
+                                {{ editPlayerData.id ? 'Save Changes' : 'Register & Assign' }}
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Custom Confirm Modal -->
-            <div v-if="showConfirmModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 glass-modal animate-[fadeIn_0.15s_ease-out]">
-                <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-sm shadow-2xl p-5 text-center">
-                    <div class="w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center text-xl mx-auto mb-3">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
+            <div v-if="confirmDialog.show" class="fixed inset-0 z-[70] flex items-center justify-center p-4 glass-modal animate-[fadeIn_0.2s_ease-out]">
+                <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-xs shadow-2xl overflow-hidden p-5 text-center">
+                    <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center mx-auto mb-3">
+                        <i class="fa-solid fa-triangle-exclamation text-xl"></i>
                     </div>
-                    <h3 class="text-sm font-black text-white mb-2">{{ confirmTitle }}</h3>
-                    <p class="text-xs text-slate-400 mb-6">{{ confirmMessage }}</p>
-                    <div class="flex gap-3">
-                        <button @click="handleConfirmNo" class="flex-1 py-2 rounded-lg bg-slate-800 text-slate-300 text-xs font-bold hover:bg-slate-700 transition">Cancel</button>
-                        <button @click="handleConfirmYes" class="flex-1 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold shadow-lg shadow-rose-500/30 hover:bg-rose-500 transition">Confirm</button>
+                    <h3 class="text-white font-black text-lg mb-2">{{ confirmDialog.title }}</h3>
+                    <p class="text-xs text-slate-400 mb-5">{{ confirmDialog.message }}</p>
+                    <div class="flex space-x-3">
+                        <button @click="confirmDialog.show = false" class="flex-1 py-2 rounded-lg bg-slate-800 text-white text-xs font-bold hover:bg-slate-700 transition">Cancel</button>
+                        <button @click="confirmDialog.onConfirm(); confirmDialog.show = false" class="flex-1 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold hover:bg-rose-500 transition">Confirm</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Toast Notification -->
+            <div class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[100] transition-all duration-300 pointer-events-none" :class="notification.show ? 'translate-y-0 opacity-100' : '-translate-y-8 opacity-0'">
+                <div class="bg-slate-800/90 backdrop-blur border border-indigo-500/50 text-white text-xs font-bold px-4 py-2 rounded-full shadow-2xl flex items-center">
+                    <i class="fa-solid fa-circle-check text-indigo-400 mr-2"></i> {{ notification.message }}
                 </div>
             </div>
 
         </main>
-        
-        <!-- Mobile Bottom Navigation -->
-        <nav class="fixed bottom-0 w-full bg-slate-900/95 backdrop-blur-md border-t border-slate-800 pb-safe z-40 md:hidden shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
-            <div class="flex justify-around items-center h-16">
-                <button @click="currentTab = 'squad'" class="flex flex-col items-center justify-center w-full h-full gap-1 transition" :class="currentTab === 'squad' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'">
-                    <i class="fa-solid fa-shield-halved text-lg transition-transform" :class="currentTab === 'squad' ? 'scale-110' : ''"></i>
-                    <span class="text-[10px] font-bold">Squad</span>
-                </button>
-                <div class="relative w-full h-full flex justify-center">
-                    <button @click="currentTab = 'log'" class="absolute -top-5 w-14 h-14 rounded-full flex flex-col items-center justify-center gap-0.5 text-white shadow-[0_0_20px_rgba(99,102,241,0.5)] border-4 border-slate-900 transition-transform active:scale-95" :class="currentTab === 'log' ? 'bg-indigo-500' : 'bg-slate-700 hover:bg-indigo-600'">
-                        <i class="fa-solid fa-plus text-xl"></i>
-                    </button>
-                    <span class="absolute bottom-1.5 text-[10px] font-bold" :class="currentTab === 'log' ? 'text-indigo-400' : 'text-slate-500'">Log</span>
-                </div>
-                <button @click="currentTab = 'analytics'" class="flex flex-col items-center justify-center w-full h-full gap-1 transition" :class="currentTab === 'analytics' ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'">
-                    <i class="fa-solid fa-chart-simple text-lg transition-transform" :class="currentTab === 'analytics' ? 'scale-110' : ''"></i>
-                    <span class="text-[10px] font-bold">Stats</span>
-                </button>
-            </div>
-        </nav>
-        
-        <!-- Desktop Sidebar Nav (Visible >= md) -->
-        <div class="hidden md:flex fixed left-0 top-14 bottom-0 w-16 flex-col items-center py-6 gap-6 bg-slate-900 border-r border-slate-800 z-30">
-            <button @click="currentTab = 'squad'" class="w-10 h-10 rounded-xl flex items-center justify-center transition group" :class="currentTab === 'squad' ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-500 hover:bg-slate-800 hover:text-white'" title="Squad Builder">
-                <i class="fa-solid fa-shield-halved text-lg group-hover:scale-110 transition-transform"></i>
-            </button>
-            <button @click="currentTab = 'log'" class="w-10 h-10 rounded-xl flex items-center justify-center transition group shadow-lg" :class="currentTab === 'log' ? 'bg-indigo-500 text-white shadow-indigo-500/30' : 'bg-slate-800 text-slate-300 hover:bg-indigo-600 hover:text-white'" title="Log Match">
-                <i class="fa-solid fa-plus text-lg group-hover:scale-110 transition-transform"></i>
-            </button>
-            <button @click="currentTab = 'analytics'" class="w-10 h-10 rounded-xl flex items-center justify-center transition group" :class="currentTab === 'analytics' ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-500 hover:bg-slate-800 hover:text-white'" title="Analytics">
-                <i class="fa-solid fa-chart-simple text-lg group-hover:scale-110 transition-transform"></i>
-            </button>
-        </div>
-
-        <!-- Toast Notification -->
-        <div v-if="notification.show" class="fixed top-20 right-4 z-[70] bg-slate-800 border border-slate-700 text-white px-4 py-2.5 rounded-lg shadow-2xl flex items-center gap-3 animate-[slideInRight_0.3s_ease-out]">
-            <i class="fa-solid fa-circle-check text-emerald-400"></i>
-            <span class="text-xs font-bold">{{ notification.message }}</span>
-        </div>
-
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
-
-        // Default Data Mocks
-        const defaultMasterRegistry = [
-            { id: 1, name: 'L. Messi', position: 'RWF', cardType: 'Big Time', playstyle: 'Creative Playmaker', matchesPlayed: 0, goals: 0, assists: 0, averageRating: 0, motm: 0 },
-            { id: 2, name: 'K. Mbappé', position: 'CF', cardType: 'Show Time', playstyle: 'Goal Poacher', matchesPlayed: 0, goals: 0, assists: 0, averageRating: 0, motm: 0 },
-            { id: 3, name: 'Kevin De Bruyne', position: 'AMF', cardType: 'Highlight', playstyle: 'Creative Playmaker', matchesPlayed: 0, goals: 0, assists: 0, averageRating: 0, motm: 0 },
-            { id: 4, name: 'Rodri', position: 'DMF', cardType: 'Highlight', playstyle: 'Anchor Man', matchesPlayed: 0, goals: 0, assists: 0, averageRating: 0, motm: 0 },
-            { id: 5, name: 'V. van Dijk', position: 'CB', cardType: 'Base', playstyle: 'Build Up', matchesPlayed: 0, goals: 0, assists: 0, averageRating: 0, motm: 0 },
-            { id: 6, name: 'T. Courtois', position: 'GK', cardType: 'Base', playstyle: 'Defensive GK', matchesPlayed: 0, goals: 0, assists: 0, averageRating: 0, motm: 0 },
-            { id: 7, name: 'J. Bellingham', position: 'CMF', cardType: 'Highlight', playstyle: 'Hole Player', matchesPlayed: 0, goals: 0, assists: 0, averageRating: 0, motm: 0 },
-            { id: 8, name: 'Vinícius Jr', position: 'LWF', cardType: 'Epic', playstyle: 'Prolific Winger', matchesPlayed: 0, goals: 0, assists: 0, averageRating: 0, motm: 0 },
-            { id: 9, name: 'A. Davies', position: 'LB', cardType: 'Highlight', playstyle: 'Offensive Full-back', matchesPlayed: 0, goals: 0, assists: 0, averageRating: 0, motm: 0 },
-            { id: 10, name: 'T. Alexander-Arnold', position: 'RB', cardType: 'Highlight', playstyle: 'Cross Specialist', matchesPlayed: 0, goals: 0, assists: 0, averageRating: 0, motm: 0 },
-            { id: 11, name: 'R. Araujo', position: 'CB', cardType: 'Base', playstyle: 'The Destroyer', matchesPlayed: 0, goals: 0, assists: 0, averageRating: 0, motm: 0 }
-        ];
-
-        const defaultSquad = {
-            id: 'sq_default',
-            name: 'Main Squad',
-            formation: '4-3-3',
-            teamPlaystyle: 'Quick Counter',
-            starters: [8, 2, 1, 7, 4, 3, 9, 5, 11, 10, 6], // Maps to index in formations
-            subs: [] // Max 12
-        };
-
-        const formations = {
-            '4-3-3': [ {role: 'LWF', top: 20, left: 25}, {role: 'CF', top: 15, left: 50}, {role: 'RWF', top: 20, left: 75}, {role: 'CMF', top: 40, left: 30}, {role: 'DMF', top: 50, left: 50}, {role: 'CMF', top: 40, left: 70}, {role: 'LB', top: 70, left: 15}, {role: 'CB', top: 75, left: 35}, {role: 'CB', top: 75, left: 65}, {role: 'RB', top: 70, left: 85}, {role: 'GK', top: 90, left: 50} ],
-            '4-2-1-3': [ {role: 'LWF', top: 20, left: 25}, {role: 'CF', top: 15, left: 50}, {role: 'RWF', top: 20, left: 75}, {role: 'AMF', top: 35, left: 50}, {role: 'DMF', top: 50, left: 35}, {role: 'DMF', top: 50, left: 65}, {role: 'LB', top: 70, left: 15}, {role: 'CB', top: 75, left: 35}, {role: 'CB', top: 75, left: 65}, {role: 'RB', top: 70, left: 85}, {role: 'GK', top: 90, left: 50} ],
-            '4-4-2': [ {role: 'CF', top: 15, left: 35}, {role: 'CF', top: 15, left: 65}, {role: 'LMF', top: 40, left: 20}, {role: 'CMF', top: 45, left: 40}, {role: 'CMF', top: 45, left: 60}, {role: 'RMF', top: 40, left: 80}, {role: 'LB', top: 70, left: 15}, {role: 'CB', top: 75, left: 35}, {role: 'CB', top: 75, left: 65}, {role: 'RB', top: 70, left: 85}, {role: 'GK', top: 90, left: 50} ],
-            '3-2-4-1': [ {role: 'CF', top: 15, left: 50}, {role: 'LMF', top: 35, left: 20}, {role: 'AMF', top: 30, left: 35}, {role: 'AMF', top: 30, left: 65}, {role: 'RMF', top: 35, left: 80}, {role: 'DMF', top: 50, left: 35}, {role: 'DMF', top: 50, left: 65}, {role: 'CB', top: 75, left: 25}, {role: 'CB', top: 75, left: 50}, {role: 'CB', top: 75, left: 75}, {role: 'GK', top: 90, left: 50} ],
-            '5-3-2': [ {role: 'CF', top: 15, left: 35}, {role: 'CF', top: 15, left: 65}, {role: 'CMF', top: 40, left: 25}, {role: 'DMF', top: 45, left: 50}, {role: 'CMF', top: 40, left: 75}, {role: 'LB', top: 60, left: 15}, {role: 'CB', top: 75, left: 30}, {role: 'CB', top: 75, left: 50}, {role: 'CB', top: 75, left: 70}, {role: 'RB', top: 60, left: 85}, {role: 'GK', top: 90, left: 50} ],
-            '4-2-2-2': [ {role: 'CF', top: 15, left: 35}, {role: 'CF', top: 15, left: 65}, {role: 'AMF', top: 35, left: 25}, {role: 'AMF', top: 35, left: 75}, {role: 'DMF', top: 50, left: 35}, {role: 'DMF', top: 50, left: 65}, {role: 'LB', top: 70, left: 15}, {role: 'CB', top: 75, left: 35}, {role: 'CB', top: 75, left: 65}, {role: 'RB', top: 70, left: 85}, {role: 'GK', top: 90, left: 50} ],
-            '4-3-1-2': [ {role: 'CF', top: 15, left: 35}, {role: 'CF', top: 15, left: 65}, {role: 'AMF', top: 30, left: 50}, {role: 'CMF', top: 45, left: 25}, {role: 'DMF', top: 50, left: 50}, {role: 'CMF', top: 45, left: 75}, {role: 'LB', top: 70, left: 15}, {role: 'CB', top: 75, left: 35}, {role: 'CB', top: 75, left: 65}, {role: 'RB', top: 70, left: 85}, {role: 'GK', top: 90, left: 50} ],
-            '4-1-2-3': [ {role: 'LWF', top: 20, left: 25}, {role: 'CF', top: 15, left: 50}, {role: 'RWF', top: 20, left: 75}, {role: 'AMF', top: 35, left: 35}, {role: 'AMF', top: 35, left: 65}, {role: 'DMF', top: 50, left: 50}, {role: 'LB', top: 70, left: 15}, {role: 'CB', top: 75, left: 35}, {role: 'CB', top: 75, left: 65}, {role: 'RB', top: 70, left: 85}, {role: 'GK', top: 90, left: 50} ]
-        };
-
-        const positionsList = ['CF', 'SS', 'LWF', 'RWF', 'AMF', 'LMF', 'RMF', 'CMF', 'DMF', 'LB', 'RB', 'CB', 'GK'];
-        const playstyleList = [
-            "Goal Poacher", "Dummy Runner", "Fox in the Box", "Target Man", "Deep-Lying Forward",
-            "Creative Playmaker", "Prolific Winger", "Roaming Flank", "Cross Specialist", "Classic No. 10",
-            "Hole Player", "Box-to-Box", "The Destroyer", "Anchor Man", "Orchestrator", "Build Up",
-            "Extra Frontman", "Defensive Full-back", "Offensive Full-back", "Full-back Finisher", "Defensive GK", "Offensive GK"
-        ];
-        const teamPlaystylesList = ["Quick Counter", "Possession Game", "Long Ball Counter", "Out Wide", "Long Ball"];
+        const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
         createApp({
             setup() {
+                // UI State
                 const currentTab = ref('squad');
-                
-                // State
-                const masterRegistry = ref([...defaultMasterRegistry]);
-                const squads = ref([{...defaultSquad}]);
-                const activeSquadId = ref('sq_default');
-                const matches = ref([]);
-                
-                const selectedFormation = ref('4-3-3');
-                const selectedTeamPlaystyle = ref('Quick Counter');
-                const showHeatmap = ref(false);
-                
-                // Modals & UI
-                const showSquadManager = ref(false);
-                const newSquadName = ref('');
-                
-                const showSlotSwapModal = ref(false);
-                const slotModalTab = ref('swap'); // 'swap' or 'edit'
-                const targetSlotType = ref('starter'); // 'starter' or 'sub'
-                const targetSlotIndex = ref(0);
-                const currentSlotPlayerId = ref(null);
-                const swapSearchQuery = ref('');
-                
-                const showConfirmModal = ref(false);
-                const confirmTitle = ref('');
-                const confirmMessage = ref('');
-                let confirmCallback = null;
-
-                const editForm = ref({ name: '', position: 'CF', cardType: 'Base', playstyle: 'Goal Poacher', isNew: false });
-                
-                const matchForm = ref({
-                    opponent: '', matchType: 'eFootball League', ourScore: 0, oppScore: 0, notes: '', ratings: {}, motm: null
-                });
-
-                const squadSearchQuery = ref('');
-                const expandedMatchId = ref(null);
-                
                 const notification = ref({ show: false, message: '' });
-
-                const comparePlayer1 = ref(null);
-                const comparePlayer2 = ref(null);
-                let radarChartInstance = null;
-
-                // Computed
-                const activeSquad = computed(() => squads.value.find(s => s.id === activeSquadId.value) || squads.value[0]);
+                const confirmDialog = ref({ show: false, title: '', message: '', onConfirm: null });
                 
-                const startersIds = computed(() => {
-                    const reqLen = formations[selectedFormation.value]?.length || 11;
-                    let ids = [...(activeSquad.value.starters || [])];
-                    while(ids.length < reqLen) ids.push(null);
-                    return ids.slice(0, reqLen);
-                });
-                
-                const subsIds = computed(() => {
-                    let ids = [...(activeSquad.value.subs || [])];
-                    while(ids.length < 12) ids.push(null);
-                    return ids.slice(0, 12);
-                });
-
-                const swapFilteredRegistry = computed(() => {
-                    if (!swapSearchQuery.value) return masterRegistry.value;
-                    const q = swapSearchQuery.value.toLowerCase();
-                    return masterRegistry.value.filter(p => p.name.toLowerCase().includes(q) || p.position.toLowerCase().includes(q));
-                });
-
-                const filteredRegistry = computed(() => {
-                    if (!squadSearchQuery.value) return masterRegistry.value;
-                    const q = squadSearchQuery.value.toLowerCase();
-                    return masterRegistry.value.filter(p => p.name.toLowerCase().includes(q) || p.position.toLowerCase().includes(q) || p.playstyle.toLowerCase().includes(q));
-                });
-
-                // Helpers
-                const getPlayerFromMaster = (id) => masterRegistry.value.find(p => p.id === id);
-                const getSquadName = (sId) => { const sq = squads.value.find(s => s.id === sId); return sq ? sq.name : 'Unknown Squad'; };
-                const isPlayerInActiveSquad = (pId) => startersIds.value.includes(pId) || subsIds.value.includes(pId);
-                
-                const getPositionStyle = (top, left) => ({ top: `${top}%`, left: `${left}%` });
-                const getCardClass = (type) => {
-                    const map = { 'Epic': 'border-yellow-500 text-yellow-500', 'Big Time': 'border-pink-500 text-pink-500', 'Show Time': 'border-purple-500 text-purple-500', 'Highlight': 'border-emerald-500 text-emerald-500', 'Base': 'border-slate-500 text-slate-400' };
-                    return map[type] || map['Base'];
-                };
-                const getCardIcon = (type) => {
-                    const map = { 'Epic': 'fa-solid fa-crown', 'Big Time': 'fa-solid fa-bolt', 'Show Time': 'fa-solid fa-star', 'Highlight': 'fa-solid fa-arrow-up', 'Base': 'fa-solid fa-user' };
-                    return map[type] || map['Base'];
-                };
-                const getCardGlowColor = (type) => {
-                    const map = { 'Epic': 'bg-yellow-500', 'Big Time': 'bg-pink-500', 'Show Time': 'bg-purple-500', 'Highlight': 'bg-emerald-500', 'Base': 'bg-slate-500' };
-                    return map[type] || map['Base'];
-                };
-                const getRatingBadgeColor = (rating) => {
-                    if(rating >= 8.0) return 'bg-purple-500/20 text-purple-400';
-                    if(rating >= 7.0) return 'bg-emerald-500/20 text-emerald-400';
-                    if(rating >= 6.0) return 'bg-blue-500/20 text-blue-400';
-                    return 'bg-slate-500/20 text-slate-400';
-                };
-                const getRatingColorClass = (rating) => {
-                    if(rating >= 8.0) return 'text-purple-400';
-                    if(rating >= 7.0) return 'text-emerald-400';
-                    if(rating >= 6.0) return 'text-blue-400';
-                    return 'text-slate-400';
-                };
-                const getResultColorClass = (res) => {
-                    if(res === 'W') return 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400';
-                    if(res === 'L') return 'border-rose-500/50 bg-rose-500/10 text-rose-400';
-                    return 'border-slate-500/50 bg-slate-500/10 text-slate-400';
+                // Formations Config
+                const formations = {
+                    '4-3-3': [
+                        {top: '15%', left: '50%'}, {top: '25%', left: '20%'}, {top: '25%', left: '80%'},
+                        {top: '45%', left: '30%'}, {top: '45%', left: '70%'}, {top: '60%', left: '50%'},
+                        {top: '75%', left: '15%'}, {top: '75%', left: '35%'}, {top: '75%', left: '65%'}, {top: '75%', left: '85%'},
+                        {top: '90%', left: '50%'}
+                    ],
+                    '4-2-1-3': [
+                        {top: '15%', left: '50%'}, {top: '25%', left: '20%'}, {top: '25%', left: '80%'},
+                        {top: '40%', left: '50%'}, {top: '55%', left: '35%'}, {top: '55%', left: '65%'},
+                        {top: '75%', left: '15%'}, {top: '75%', left: '35%'}, {top: '75%', left: '65%'}, {top: '75%', left: '85%'},
+                        {top: '90%', left: '50%'}
+                    ],
+                    '4-4-2': [
+                        {top: '15%', left: '35%'}, {top: '15%', left: '65%'},
+                        {top: '45%', left: '15%'}, {top: '45%', left: '40%'}, {top: '45%', left: '60%'}, {top: '45%', left: '85%'},
+                        {top: '75%', left: '15%'}, {top: '75%', left: '35%'}, {top: '75%', left: '65%'}, {top: '75%', left: '85%'},
+                        {top: '90%', left: '50%'}
+                    ],
+                    '4-2-2-2': [
+                        {top: '15%', left: '35%'}, {top: '15%', left: '65%'},
+                        {top: '35%', left: '20%'}, {top: '35%', left: '80%'}, 
+                        {top: '55%', left: '35%'}, {top: '55%', left: '65%'},
+                        {top: '75%', left: '15%'}, {top: '75%', left: '35%'}, {top: '75%', left: '65%'}, {top: '75%', left: '85%'},
+                        {top: '90%', left: '50%'}
+                    ],
+                    '4-3-1-2': [
+                        {top: '15%', left: '35%'}, {top: '15%', left: '65%'},
+                        {top: '35%', left: '50%'},
+                        {top: '55%', left: '25%'}, {top: '60%', left: '50%'}, {top: '55%', left: '75%'},
+                        {top: '75%', left: '15%'}, {top: '75%', left: '35%'}, {top: '75%', left: '65%'}, {top: '75%', left: '85%'},
+                        {top: '90%', left: '50%'}
+                    ],
+                    '4-1-2-3': [
+                        {top: '15%', left: '50%'}, {top: '25%', left: '20%'}, {top: '25%', left: '80%'},
+                        {top: '40%', left: '35%'}, {top: '40%', left: '65%'}, 
+                        {top: '60%', left: '50%'},
+                        {top: '75%', left: '15%'}, {top: '75%', left: '35%'}, {top: '75%', left: '65%'}, {top: '75%', left: '85%'},
+                        {top: '90%', left: '50%'}
+                    ],
+                    '3-2-4-1': [
+                        {top: '15%', left: '50%'},
+                        {top: '35%', left: '25%'}, {top: '35%', left: '75%'}, {top: '30%', left: '10%'}, {top: '30%', left: '90%'},
+                        {top: '55%', left: '35%'}, {top: '55%', left: '65%'},
+                        {top: '75%', left: '20%'}, {top: '75%', left: '50%'}, {top: '75%', left: '80%'},
+                        {top: '90%', left: '50%'}
+                    ],
+                    '5-3-2': [
+                        {top: '15%', left: '35%'}, {top: '15%', left: '65%'},
+                        {top: '45%', left: '25%'}, {top: '45%', left: '50%'}, {top: '45%', left: '75%'},
+                        {top: '65%', left: '10%'}, {top: '75%', left: '30%'}, {top: '75%', left: '50%'}, {top: '75%', left: '70%'}, {top: '65%', left: '90%'},
+                        {top: '90%', left: '50%'}
+                    ]
                 };
 
-                const toggleHeatmap = () => showHeatmap.value = !showHeatmap.value;
-                
+                // Helper to create empty IDs quickly
+                const createEmptyPlayer = (pos) => ({ id: 'p_' + Date.now() + Math.random().toString(36).substr(2, 9), name: '', pos, cardType: 'base', playstyle: 'None', matches: 0, goals: 0, assists: 0, totalRating: 0, motmAwards: 0 });
+
+                // Core Data State
+                const masterRegistry = ref([]);
+                const squads = ref([]);
+                const activeSquadId = ref('');
+                const matchHistory = ref([]);
+
+                // Match Logger State
+                const matchForm = ref({ matchType: 'Division', goalsFor: 0, goalsAgainst: 0, ratings: {} });
+
+                // UI Helpers
                 const showNotif = (msg) => {
                     notification.value.message = msg;
                     notification.value.show = true;
                     setTimeout(() => { notification.value.show = false; }, 3000);
                 };
 
-                // Modals
-                const openSquadManager = () => showSquadManager.value = true;
-                
-                const customConfirm = (title, msg, onYes) => {
-                    confirmTitle.value = title; confirmMessage.value = msg; confirmCallback = onYes; showConfirmModal.value = true;
-                };
-                const handleConfirmYes = () => { if(confirmCallback) confirmCallback(); showConfirmModal.value = false; };
-                const handleConfirmNo = () => { showConfirmModal.value = false; confirmCallback = null; };
-
-                // State Management
-                const saveState = async () => {
-                    const activeSq = squads.value.find(s => s.id === activeSquadId.value);
-                    if (activeSq) {
-                        activeSq.formation = selectedFormation.value;
-                        activeSq.teamPlaystyle = selectedTeamPlaystyle.value;
-                    }
-                    const payload = { masterRegistry: masterRegistry.value, squads: squads.value, matches: matches.value, activeSquadId: activeSquadId.value };
-                    localStorage.setItem('efootball_db_v2', JSON.stringify(payload));
+                const customConfirm = (title, message, callback) => {
+                    confirmDialog.value = { show: true, title, message, onConfirm: callback };
                 };
 
-                const loadState = async () => {
+                // Database / Initialization
+                const loadState = () => {
                     try {
-                        const local = localStorage.getItem('efootball_db_v2');
-                        if (local) {
-                            const data = JSON.parse(local);
-                            if(data.masterRegistry) masterRegistry.value = data.masterRegistry;
-                            if(data.squads) squads.value = data.squads;
-                            if(data.matches) matches.value = data.matches;
-                            if(data.activeSquadId && squads.value.find(s => s.id === data.activeSquadId)) {
-                                activeSquadId.value = data.activeSquadId;
+                        const savedRegistry = localStorage.getItem('ef_registry');
+                        const savedSquads = localStorage.getItem('ef_squads');
+                        const savedMatches = localStorage.getItem('ef_matches');
+                        
+                        if (savedRegistry && savedSquads) {
+                            masterRegistry.value = JSON.parse(savedRegistry);
+                            squads.value = JSON.parse(savedSquads);
+                            matchHistory.value = savedMatches ? JSON.parse(savedMatches) : [];
+                            activeSquadId.value = squads.value[0]?.id || '';
+                        } else {
+                            // First time setup
+                            const initialSquad = {
+                                id: 'sq_initial',
+                                name: 'Main Squad',
+                                formation: '4-3-3',
+                                playstyle: 'Quick Counter',
+                                starters: [],
+                                subs: []
+                            };
+                            const defaultPos = ['CF','LWF','RWF','CMF','CMF','DMF','LB','CB','CB','RB','GK'];
+                            for (let i = 0; i < 11; i++) {
+                                const p = createEmptyPlayer(defaultPos[i]);
+                                masterRegistry.value.push(p);
+                                initialSquad.starters.push(p.id);
+                            }
+                            for (let i = 0; i < 12; i++) {
+                                const p = createEmptyPlayer('CMF');
+                                masterRegistry.value.push(p);
+                                initialSquad.subs.push(p.id);
+                            }
+                            squads.value = [initialSquad];
+                            activeSquadId.value = initialSquad.id;
+                        }
+                    } catch (e) {
+                        console.error("Local storage parsing error, resetting memory...", e);
+                    }
+                    initMatchForm();
+                };
+
+                const saveState = () => {
+                    localStorage.setItem('ef_registry', JSON.stringify(masterRegistry.value));
+                    localStorage.setItem('ef_squads', JSON.stringify(squads.value));
+                    localStorage.setItem('ef_matches', JSON.stringify(matchHistory.value));
+                };
+
+                // Computed properties
+                const activeSquad = computed(() => squads.value.find(s => s.id === activeSquadId.value) || squads.value[0]);
+                const activeSquadStarters = computed(() => activeSquad.value?.starters || []);
+                const activeSquadSubs = computed(() => activeSquad.value?.subs || []);
+                
+                const selectedFormation = computed({
+                    get: () => activeSquad.value?.formation || '4-3-3',
+                    set: (val) => { if(activeSquad.value) { activeSquad.value.formation = val; saveState(); } }
+                });
+
+                const selectedTeamPlaystyle = computed({
+                    get: () => activeSquad.value?.playstyle || 'Quick Counter',
+                    set: (val) => { if(activeSquad.value) { activeSquad.value.playstyle = val; saveState(); } }
+                });
+
+                const sortedRegistry = computed(() => [...masterRegistry.value].sort((a, b) => b.matches - a.matches || a.name.localeCompare(b.name)));
+
+                const getPlayer = (id) => masterRegistry.value.find(p => p.id === id) || { name: 'Unknown', pos: '?', cardType: 'base' };
+
+                const initMatchForm = () => {
+                    if (!activeSquad.value) return;
+                    const ratingsObj = {};
+                    activeSquad.value.starters.forEach(id => {
+                        ratingsObj[id] = { rating: 6.0, goals: 0, assists: 0, played: true, motm: false };
+                    });
+                    activeSquad.value.subs.forEach(id => {
+                        ratingsObj[id] = { rating: 6.0, goals: 0, assists: 0, played: false, motm: false };
+                    });
+                    matchForm.value = { matchType: 'Division', goalsFor: 0, goalsAgainst: 0, ratings: ratingsObj };
+                };
+
+                const onSquadSwitch = () => {
+                    initMatchForm();
+                    saveState();
+                };
+
+                // Match Logging Logic
+                const toggleMOTM = (playerId) => {
+                    for (const id in matchForm.value.ratings) {
+                        if (id !== playerId) matchForm.value.ratings[id].motm = false;
+                    }
+                    matchForm.value.ratings[playerId].motm = !matchForm.value.ratings[playerId].motm;
+                };
+
+                const saveMatch = () => {
+                    const matchId = 'm_' + Date.now();
+                    const newMatch = {
+                        id: matchId,
+                        date: new Date().toISOString(),
+                        squadId: activeSquadId.value,
+                        matchType: matchForm.value.matchType,
+                        goalsFor: matchForm.value.goalsFor,
+                        goalsAgainst: matchForm.value.goalsAgainst,
+                        ratings: JSON.parse(JSON.stringify(matchForm.value.ratings))
+                    };
+                    
+                    matchHistory.value.push(newMatch);
+                    
+                    for (const playerId in matchForm.value.ratings) {
+                        const data = matchForm.value.ratings[playerId];
+                        if (data.played) {
+                            const p = masterRegistry.value.find(player => player.id === playerId);
+                            if (p) {
+                                p.matches = (p.matches || 0) + 1;
+                                p.goals = (p.goals || 0) + data.goals;
+                                p.totalRating = (p.totalRating || 0) + parseFloat(data.rating);
+                                if (data.motm) p.motmAwards = (p.motmAwards || 0) + 1;
                             }
                         }
-                    } catch(e) { console.error("Load failed", e); }
-                    onSquadSwitch(false); // init form state silently
-                };
-
-                const onSquadSwitch = (save = true) => {
-                    if (activeSquad.value.formation) selectedFormation.value = activeSquad.value.formation;
-                    if (activeSquad.value.teamPlaystyle) selectedTeamPlaystyle.value = activeSquad.value.teamPlaystyle;
-                    else selectedTeamPlaystyle.value = 'Quick Counter';
+                    }
+                    
+                    saveState();
                     initMatchForm();
-                    if (save) saveState();
+                    if(currentTab.value === 'stats') initCharts();
+                    showNotif('Match logged & stats updated!');
                 };
 
-                // Slot Logic
-                const openSlotSwapModal = (type, index, currentId) => {
-                    targetSlotType.value = type; targetSlotIndex.value = index; currentSlotPlayerId.value = currentId;
-                    swapSearchQuery.value = ''; slotModalTab.value = 'swap';
+                // Squad Manager
+                const showSquadManager = ref(false);
+                const newSquadName = ref('');
+                
+                const openSquadManager = () => showSquadManager.value = true;
+                
+                const createNewSquad = () => {
+                    if (!newSquadName.value.trim()) return showNotif('Enter a squad name!');
+                    const newSquad = {
+                        id: 'sq_' + Date.now(),
+                        name: newSquadName.value,
+                        formation: selectedFormation.value,
+                        playstyle: selectedTeamPlaystyle.value,
+                        starters: [...(activeSquad.value.starters || [])],
+                        subs: [...(activeSquad.value.subs || [])]
+                    };
+                    squads.value.push(newSquad);
+                    activeSquadId.value = newSquad.id;
+                    newSquadName.value = '';
+                    showSquadManager.value = false;
+                    onSquadSwitch();
+                    showNotif('Squad created successfully!');
+                };
+                
+                const deleteSquad = (id) => {
+                    if (squads.value.length <= 1) return showNotif('Cannot delete last squad');
+                    customConfirm("Delete Squad?", "Are you sure you want to delete this squad setup?", () => {
+                        squads.value = squads.value.filter(s => s.id !== id);
+                        if (activeSquadId.value === id) {
+                            activeSquadId.value = squads.value[0].id;
+                            onSquadSwitch();
+                        }
+                        saveState();
+                        showNotif('Squad deleted.');
+                    });
+                };
+
+                // Slot Editor
+                const showSlotSwapModal = ref(false);
+                const slotModalTab = ref('swap');
+                const targetSlotType = ref('starter');
+                const targetSlotIndex = ref(0);
+                const playerSearchQuery = ref('');
+                const editPlayerData = ref({});
+
+                const filteredRegistry = computed(() => {
+                    if (!playerSearchQuery.value) return masterRegistry.value;
+                    return masterRegistry.value.filter(p => p.name.toLowerCase().includes(playerSearchQuery.value.toLowerCase()));
+                });
+
+                const openSlotSwapModal = (type, index) => {
+                    targetSlotType.value = type;
+                    targetSlotIndex.value = index;
+                    playerSearchQuery.value = '';
+                    
+                    let currentId = null;
+                    if (type === 'starter') currentId = activeSquadStarters.value[index];
+                    else if (type === 'sub') currentId = activeSquadSubs.value[index];
                     
                     if (currentId) {
-                        const p = getPlayerFromMaster(currentId);
-                        editForm.value = { ...p, isNew: false };
+                        const p = getPlayer(currentId);
+                        editPlayerData.value = JSON.parse(JSON.stringify(p));
+                        slotModalTab.value = p.name ? 'swap' : 'edit';
+                    } else {
+                        editPlayerData.value = createEmptyPlayer('CF');
+                        slotModalTab.value = 'edit';
                     }
                     showSlotSwapModal.value = true;
                 };
 
-                const assignPlayerToSlot = (pId) => {
-                    const sq = activeSquad.value;
-                    let targetArray = targetSlotType.value === 'starter' ? sq.starters : sq.subs;
-                    
-                    // Remove from old slot if already in squad
-                    const oldStartIndex = (sq.starters || []).indexOf(pId);
-                    if(oldStartIndex !== -1) sq.starters[oldStartIndex] = null;
-                    const oldSubIndex = (sq.subs || []).indexOf(pId);
-                    if(oldSubIndex !== -1) sq.subs[oldSubIndex] = null;
-
-                    // Assign
-                    if(!targetArray) targetArray = [];
-                    while(targetArray.length <= targetSlotIndex.value) targetArray.push(null);
-                    targetArray[targetSlotIndex.value] = pId;
-                    
-                    if(targetSlotType.value === 'starter') sq.starters = targetArray; else sq.subs = targetArray;
-                    
-                    showSlotSwapModal.value = false;
+                const assignPlayerToSlot = (playerId) => {
+                    if (targetSlotType.value === 'starter') {
+                        activeSquad.value.starters[targetSlotIndex.value] = playerId;
+                    } else if (targetSlotType.value === 'sub') {
+                        activeSquad.value.subs[targetSlotIndex.value] = playerId;
+                    }
                     initMatchForm();
                     saveState();
-                };
-
-                const clearSlot = () => {
-                    const sq = activeSquad.value;
-                    if(targetSlotType.value === 'starter' && sq.starters) sq.starters[targetSlotIndex.value] = null;
-                    if(targetSlotType.value === 'sub' && sq.subs) sq.subs[targetSlotIndex.value] = null;
                     showSlotSwapModal.value = false;
-                    initMatchForm();
-                    saveState();
+                    showNotif('Player assigned to slot!');
                 };
 
-                const openCreatePlayerModal = (fromSlot = false) => {
-                    editForm.value = { name: '', position: 'CF', cardType: 'Base', playstyle: 'Goal Poacher', isNew: true };
-                    if(fromSlot) { slotModalTab.value = 'edit'; } 
-                    else {
-                        targetSlotType.value = null; currentSlotPlayerId.value = null; slotModalTab.value = 'edit'; showSlotSwapModal.value = true;
-                    }
-                };
-                const openMasterEditModal = (p) => {
-                    editForm.value = { ...p, isNew: false };
-                    targetSlotType.value = null; currentSlotPlayerId.value = p.id; slotModalTab.value = 'edit'; showSlotSwapModal.value = true;
-                };
-
-                const saveSlotPlayerEdit = () => {
-                    if (!editForm.value.name) return showNotif('Name is required');
+                const savePlayerDetails = () => {
+                    if (!editPlayerData.value.name.trim()) return showNotif('Player name is required!');
                     
-                    let pId = currentSlotPlayerId.value;
-                    if (editForm.value.isNew) {
-                        pId = Date.now();
-                        masterRegistry.value.push({ id: pId, name: editForm.value.name, position: editForm.value.position, cardType: editForm.value.cardType, playstyle: editForm.value.playstyle, matchesPlayed: 0, goals: 0, assists: 0, averageRating: 0, motm: 0 });
-                        showNotif('New player registered!');
+                    let isNew = false;
+                    let existingIndex = masterRegistry.value.findIndex(p => p.id === editPlayerData.value.id);
+                    
+                    if (existingIndex >= 0) {
+                        masterRegistry.value[existingIndex] = { ...masterRegistry.value[existingIndex], ...editPlayerData.value };
                     } else {
-                        const p = getPlayerFromMaster(pId);
-                        if(p) { p.name = editForm.value.name; p.position = editForm.value.position; p.cardType = editForm.value.cardType; p.playstyle = editForm.value.playstyle; }
-                        showNotif('Player profile updated');
+                        masterRegistry.value.push({ ...editPlayerData.value });
+                        isNew = true;
                     }
                     
-                    // If modal opened from a specific pitch slot, assign them instantly
-                    if (targetSlotType.value && editForm.value.isNew) {
-                        assignPlayerToSlot(pId);
+                    if (targetSlotType.value !== 'new') {
+                        assignPlayerToSlot(editPlayerData.value.id);
                     } else {
-                        showSlotSwapModal.value = false;
                         saveState();
+                        showSlotSwapModal.value = false;
+                        showNotif('Player registered successfully!');
                     }
                 };
 
-                // Match Logging Logic
-                const initMatchForm = () => {
-                    matchForm.value.opponent = ''; matchForm.value.ourScore = 0; matchForm.value.oppScore = 0; matchForm.value.notes = ''; matchForm.value.ratings = {}; matchForm.value.motm = null;
-                    
-                    startersIds.value.forEach(pId => {
-                        if(pId && !matchForm.value.ratings[pId]) matchForm.value.ratings[pId] = { id: pId, played: true, rating: 6.0, goals: 0, assists: 0 };
-                    });
-                    subsIds.value.forEach(pId => {
-                        if(pId && !matchForm.value.ratings[pId]) matchForm.value.ratings[pId] = { id: pId, played: false, rating: 6.0, goals: 0, assists: 0 };
-                    });
-                };
+                let radarChartInst = null;
+                const radarPlayer1 = ref('');
+                const radarPlayer2 = ref('');
 
-                const resetMatchForm = () => customConfirm("Reset Form?", "Are you sure you want to clear current match data?", initMatchForm);
-
-                const saveMatch = () => {
-                    if (!activeSquad.value) return showNotif("Error: No active squad");
+                const updateRadarChart = () => {
+                    if (!radarChartInst) return;
                     
-                    const matchId = Date.now();
-                    const result = matchForm.value.ourScore > matchForm.value.oppScore ? 'W' : (matchForm.value.ourScore < matchForm.value.oppScore ? 'L' : 'D');
+                    const p1 = getPlayer(radarPlayer1.value);
+                    const p2 = getPlayer(radarPlayer2.value);
                     
-                    const loggedRatings = {};
-                    Object.keys(matchForm.value.ratings).forEach(pId => {
-                        const r = matchForm.value.ratings[pId];
-                        if (r.played) { loggedRatings[pId] = { id: parseInt(pId), rating: parseFloat(r.rating), goals: parseInt(r.goals), assists: parseInt(r.assists) }; }
-                    });
-
-                    const newMatch = {
-                        id: matchId, squadId: activeSquadId.value, opponent: matchForm.value.opponent, matchType: matchForm.value.matchType,
-                        ourScore: parseInt(matchForm.value.ourScore), oppScore: parseInt(matchForm.value.oppScore), result,
-                        notes: matchForm.value.notes, motm: matchForm.value.motm,
-                        date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                        playerRatings: loggedRatings
+                    const calcStats = (p) => {
+                        if (!p || p.name === 'Unknown' || p.matches === 0) return [0,0,0,0,0];
+                        const avgRtg = (p.totalRating / p.matches);
+                        const goalThreat = Math.min((p.goals / p.matches) * 10, 10);
+                        const playmaking = Math.min((p.assists / p.matches) * 10, 10);
+                        const motmFreq = Math.min((p.motmAwards / p.matches) * 10, 10);
+                        const exp = Math.min(p.matches / 10, 10);
+                        return [avgRtg, goalThreat, playmaking, motmFreq, exp];
                     };
 
-                    matches.value.push(newMatch);
-                    recalculateStats();
-                    saveState();
-                    initMatchForm();
-                    showNotif('Match saved successfully!');
-                    currentTab.value = 'analytics';
+                    radarChartInst.data.datasets[0].data = calcStats(p1);
+                    radarChartInst.data.datasets[0].label = p1.name !== 'Unknown' ? p1.name : 'Player 1';
+                    radarChartInst.data.datasets[1].data = calcStats(p2);
+                    radarChartInst.data.datasets[1].label = p2.name !== 'Unknown' ? p2.name : 'Player 2';
+                    radarChartInst.update();
                 };
 
-                const getActiveRatingsForMatch = (match) => { return Object.values(match.playerRatings); };
-                
-                const deleteMatch = (id) => {
-                    customConfirm("Delete Match?", "This will remove the stats from all players.", () => {
-                        matches.value = matches.value.filter(m => m.id !== id);
-                        recalculateStats(); saveState(); showNotif("Match deleted");
-                    });
-                };
-                
-                const toggleMatchAccordion = (id) => { expandedMatchId.value = expandedMatchId.value === id ? null : id; };
-
-                // Analytics Logic
-                const recalculateStats = () => {
-                    masterRegistry.value.forEach(p => { p.averageRating = 0; p.matchesPlayed = 0; p.goals = 0; p.assists = 0; p.motm = 0; });
-
-                    matches.value.forEach(match => {
-                        Object.keys(match.playerRatings).forEach(pId => {
-                            const playerStat = match.playerRatings[pId];
-                            const playerObj = masterRegistry.value.find(p => p.id === parseInt(pId));
-                            if (playerObj) {
-                                playerObj.matchesPlayed += 1;
-                                playerObj.goals += playerStat.goals;
-                                playerObj.assists += playerStat.assists;
-                                playerObj.averageRating += playerStat.rating;
+                const initCharts = () => {
+                    nextTick(() => {
+                        const ctx = document.getElementById('playerRadarChart');
+                        if (!ctx) return;
+                        
+                        if (radarChartInst) radarChartInst.destroy();
+                        
+                        Chart.defaults.color = '#94a3b8';
+                        Chart.defaults.font.family = 'Inter';
+                        
+                        radarChartInst = new Chart(ctx, {
+                            type: 'radar',
+                            data: {
+                                labels: ['Avg Rating', 'Goal Threat', 'Playmaking', 'MOTM Freq', 'Experience'],
+                                datasets: [
+                                    {
+                                        label: 'Player 1',
+                                        data: [0,0,0,0,0],
+                                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                                        borderColor: 'rgba(99, 102, 241, 1)',
+                                        pointBackgroundColor: 'rgba(99, 102, 241, 1)',
+                                        borderWidth: 2
+                                    },
+                                    {
+                                        label: 'Player 2',
+                                        data: [0,0,0,0,0],
+                                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                                        borderColor: 'rgba(16, 185, 129, 1)',
+                                        pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                                        borderWidth: 2
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    r: {
+                                        angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                        pointLabels: { font: { size: 10, weight: 'bold' } },
+                                        ticks: { display: false, min: 0, max: 10 }
+                                    }
+                                },
+                                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
                             }
                         });
-                        if (match.motm) {
-                            const motmPlayer = masterRegistry.value.find(p => p.id === match.motm);
-                            if (motmPlayer) motmPlayer.motm = (motmPlayer.motm || 0) + 1;
+                        
+                        if (sortedRegistry.value.length >= 2) {
+                            radarPlayer1.value = sortedRegistry.value[0].id;
+                            radarPlayer2.value = sortedRegistry.value[1].id;
+                            updateRadarChart();
                         }
                     });
-
-                    masterRegistry.value.forEach(p => {
-                        if (p.matchesPlayed > 0) p.averageRating = p.averageRating / p.matchesPlayed;
-                    });
-                    
-                    nextTick(() => { if(currentTab.value === 'analytics') renderRadarChart(); });
                 };
 
-                const renderRadarChart = () => {
-                    const ctx = document.getElementById('playerRadarChart');
-                    if (!ctx || !comparePlayer1.value || !comparePlayer2.value) return;
-                    if (radarChartInstance) radarChartInstance.destroy();
+                // Sync Logic
+                const exportData = () => {
+                    const data = { registry: masterRegistry.value, squads: squads.value, matches: matchHistory.value };
+                    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `eFootball_Backup_${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                };
 
-                    const p1 = getPlayerFromMaster(comparePlayer1.value);
-                    const p2 = getPlayerFromMaster(comparePlayer2.value);
-                    if (!p1 || !p2) return;
-
-                    const calcStats = (p) => {
-                        if (p.matchesPlayed === 0) return [0, 0, 0, 0, 0];
-                        return [
-                            p.averageRating,
-                            (p.goals / p.matchesPlayed) * 5, // visual scale
-                            (p.assists / p.matchesPlayed) * 10, // visual scale
-                            ((p.motm || 0) / p.matchesPlayed) * 10, // visual scale
-                            Math.min((p.matchesPlayed / 50) * 10, 10) // visual max 10
-                        ];
-                    };
-
-                    radarChartInstance = new Chart(ctx, {
-                        type: 'radar',
-                        data: {
-                            labels: ['Avg Rating', 'Goal Threat', 'Playmaking', 'MOTM Frequency', 'Experience'],
-                            datasets: [
-                                { label: p1.name, data: calcStats(p1), backgroundColor: 'rgba(99, 102, 241, 0.2)', borderColor: '#6366f1', pointBackgroundColor: '#6366f1', borderWidth: 2 },
-                                { label: p2.name, data: calcStats(p2), backgroundColor: 'rgba(236, 72, 153, 0.2)', borderColor: '#ec4899', pointBackgroundColor: '#ec4899', borderWidth: 2 }
-                            ]
-                        },
-                        options: {
-                            responsive: true, maintainAspectRatio: false,
-                            scales: { r: { min: 0, max: 10, ticks: { display: false }, grid: { color: 'rgba(148, 163, 184, 0.15)' }, pointLabels: { color: '#cbd5e1', font: { size: 10, family: "'Inter', sans-serif" } }, angleLines: { color: 'rgba(148, 163, 184, 0.15)' } } },
-                            plugins: {
-                                legend: { position: 'bottom', labels: { color: '#cbd5e1' } },
-                                tooltip: { callbacks: { label: function(c) {
-                                    const p = c.datasetIndex === 0 ? p1 : p2;
-                                    if (p.matchesPlayed === 0) return `${p.name}: No match data`;
-                                    if (c.dataIndex === 0) return `${p.name} Avg: ${p.averageRating.toFixed(2)}`;
-                                    if (c.dataIndex === 1) return `${p.name} G/Game: ${(p.goals / p.matchesPlayed).toFixed(2)}`;
-                                    if (c.dataIndex === 2) return `${p.name} A/Game: ${(p.assists / p.matchesPlayed).toFixed(2)}`;
-                                    if (c.dataIndex === 3) return `${p.name} MOTM: ${(((p.motm || 0) / p.matchesPlayed) * 100).toFixed(0)}%`;
-                                    if (c.dataIndex === 4) return `${p.name} Matches: ${p.matchesPlayed}`;
-                                } } }
+                const importData = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            if (data.registry && data.squads) {
+                                masterRegistry.value = data.registry;
+                                squads.value = data.squads;
+                                matchHistory.value = data.matches || [];
+                                activeSquadId.value = squads.value[0].id;
+                                saveState();
+                                onSquadSwitch();
+                                showNotif('Data imported successfully!');
                             }
+                        } catch (err) {
+                            showNotif('Invalid backup file!');
                         }
+                    };
+                    reader.readAsText(file);
+                };
+
+                const factoryReset = () => {
+                    customConfirm("WARNING: Factory Reset", "This will permanently delete ALL players, squads, and match history. Proceed?", () => {
+                        localStorage.removeItem('ef_registry');
+                        localStorage.removeItem('ef_squads');
+                        localStorage.removeItem('ef_matches');
+                        location.reload();
                     });
                 };
 
-                watch(currentTab, (newTab) => { 
-                    if (newTab === 'analytics') {
-                        if (!comparePlayer1.value && filteredRegistry.value.length >= 1) comparePlayer1.value = filteredRegistry.value[0].id;
-                        if (!comparePlayer2.value && filteredRegistry.value.length >= 2) comparePlayer2.value = filteredRegistry.value[1].id;
-                        nextTick(() => { renderRadarChart(); });
-                    } 
-                });
+                const getPositionStyle = (index) => {
+                    const formConfig = formations[selectedFormation.value] || formations['4-3-3'];
+                    return formConfig[index] || { top: '50%', left: '50%' };
+                };
+                const getCardClass = (type) => 'card-' + (type || 'base');
+                const getRatingColorClass = (rating) => {
+                    const r = parseFloat(rating);
+                    if (r >= 7.5) return 'bg-emerald-500/20 text-emerald-400';
+                    if (r >= 6.5) return 'bg-indigo-500/20 text-indigo-400';
+                    if (r >= 5.5) return 'bg-slate-500/20 text-slate-300';
+                    return 'bg-rose-500/20 text-rose-400';
+                };
 
-                onMounted(async () => {
-                    await loadState();
-                    initMatchForm();
-                    recalculateStats();
+                onMounted(() => {
+                    loadState();
                 });
 
                 return {
-                    currentTab, masterRegistry, squads, activeSquadId, startersIds, subsIds,
-                    getPlayerFromMaster, getSquadName, isPlayerInActiveSquad,
-                    formations, selectedFormation, teamPlaystylesList, selectedTeamPlaystyle, showHeatmap, toggleHeatmap,
-                    getPositionStyle, getCardClass, getCardIcon, getCardGlowColor, getRatingBadgeColor, getRatingColorClass, getResultColorClass,
-                    showSquadManager, newSquadName, openSquadManager, onSquadSwitch, saveState,
-                    showSlotSwapModal, slotModalTab, targetSlotType, targetSlotIndex, currentSlotPlayerId,
-                    openSlotSwapModal, swapSearchQuery, swapFilteredRegistry, assignPlayerToSlot, clearSlot,
-                    editForm, saveSlotPlayerEdit, positionsList, playstyleList, openCreatePlayerModal, openMasterEditModal,
-                    matchForm, resetMatchForm, saveMatch, matches, deleteMatch, getActiveRatingsForMatch, toggleMatchAccordion, expandedMatchId,
-                    filteredRegistry, squadSearchQuery, comparePlayer1, comparePlayer2, renderRadarChart,
-                    showConfirmModal, confirmTitle, confirmMessage, handleConfirmYes, handleConfirmNo,
-                    notification, showNotif
+                    currentTab, notification, confirmDialog, getCardClass, getPositionStyle, getRatingColorClass, getPlayer,
+                    squads, activeSquadId, activeSquad, activeSquadStarters, activeSquadSubs,
+                    selectedFormation, selectedTeamPlaystyle, onSquadSwitch, saveState,
+                    matchForm, matchHistory, saveMatch, toggleMOTM,
+                    showSquadManager, newSquadName, openSquadManager, createNewSquad, deleteSquad,
+                    showSlotSwapModal, slotModalTab, targetSlotType, targetSlotIndex, playerSearchQuery, editPlayerData, filteredRegistry, openSlotSwapModal, assignPlayerToSlot, savePlayerDetails,
+                    masterRegistry, sortedRegistry, radarPlayer1, radarPlayer2, updateRadarChart, initCharts,
+                    exportData, importData, factoryReset
                 };
             }
         }).mount('#app');
