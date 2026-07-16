@@ -267,11 +267,11 @@
                     <div class="flex space-x-2 mb-4">
                         <select v-model="radarPlayer1" @change="updateRadarChart" class="flex-1 bg-slate-800 border border-indigo-500/50 text-xs text-white rounded-lg p-2 outline-none">
                             <option value="">Select Player 1...</option>
-                            <option v-for="p in sortedRegistry" :key="'r1'+p.id" :value="p.id">{{ p.name }}</option>
+                            <option v-for="p in sortedRegistry" :key="'r1'+p.id" :value="p.id">{{ p.name || 'Unnamed Player' }}</option>
                         </select>
                         <select v-model="radarPlayer2" @change="updateRadarChart" class="flex-1 bg-slate-800 border border-emerald-500/50 text-xs text-white rounded-lg p-2 outline-none">
                             <option value="">Select Player 2...</option>
-                            <option v-for="p in sortedRegistry" :key="'r2'+p.id" :value="p.id">{{ p.name }}</option>
+                            <option v-for="p in sortedRegistry" :key="'r2'+p.id" :value="p.id">{{ p.name || 'Unnamed Player' }}</option>
                         </select>
                     </div>
                     <div class="w-full max-w-sm mx-auto aspect-square relative">
@@ -297,10 +297,10 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-800/50">
-                                <tr v-for="player in sortedRegistry" :key="player.id" class="hover:bg-slate-800/30 transition">
+                                <tr v-for="player in sortedRegistry" :key="player.id" @click="editPlayerFromRegistry(player.id)" class="hover:bg-slate-700/50 transition cursor-pointer">
                                     <td class="py-3 flex items-center">
-                                        <div :class="['w-5 h-5 rounded flex items-center justify-center text-[7px] font-black mr-2', getCardClass(player.cardType)]">{{ player.pos }}</div>
-                                        <div class="font-bold text-white truncate max-w-[120px]">{{ player.name }}</div>
+                                        <div :class="['w-5 h-5 rounded flex items-center justify-center text-[7px] font-black mr-2 shadow', getCardClass(player.cardType)]">{{ player.pos }}</div>
+                                        <div class="font-bold text-white truncate max-w-[120px]">{{ player.name || 'Unnamed Player' }} <i class="fa-solid fa-pen text-[10px] text-slate-500 ml-2"></i></div>
                                     </td>
                                     <td class="py-3 text-center text-slate-300 font-bold">{{ player.matches }}</td>
                                     <td class="py-3 text-center text-slate-300">{{ player.goals }}</td>
@@ -379,7 +379,7 @@
                     </div>
                     
                     <div class="flex border-b border-slate-800 text-[10px] font-bold uppercase">
-                        <button @click="slotModalTab = 'swap'" :class="slotModalTab === 'swap' ? 'text-indigo-400 border-b-2 border-indigo-500' : 'text-slate-500'" class="flex-1 py-3 transition">Swap Existing</button>
+                        <button v-if="targetSlotType === 'starter' || targetSlotType === 'sub'" @click="slotModalTab = 'swap'" :class="slotModalTab === 'swap' ? 'text-indigo-400 border-b-2 border-indigo-500' : 'text-slate-500'" class="flex-1 py-3 transition">Swap Existing</button>
                         <button @click="slotModalTab = 'edit'" :class="slotModalTab === 'edit' ? 'text-indigo-400 border-b-2 border-indigo-500' : 'text-slate-500'" class="flex-1 py-3 transition">Edit / Register</button>
                     </div>
 
@@ -721,6 +721,14 @@
                     showNotif('Player assigned to slot!');
                 };
 
+                const editPlayerFromRegistry = (playerId) => {
+                    const p = getPlayer(playerId);
+                    editPlayerData.value = JSON.parse(JSON.stringify(p));
+                    slotModalTab.value = 'edit';
+                    targetSlotType.value = 'registry';
+                    showSlotSwapModal.value = true;
+                };
+
                 const savePlayerDetails = () => {
                     if (!editPlayerData.value.name.trim()) return showNotif('Player name is required!');
                     let isNew = false;
@@ -729,8 +737,14 @@
                     if (existingIndex >= 0) { masterRegistry.value[existingIndex] = { ...masterRegistry.value[existingIndex], ...editPlayerData.value }; } 
                     else { masterRegistry.value.push({ ...editPlayerData.value }); isNew = true; }
                     
-                    if (targetSlotType.value !== 'new') { assignPlayerToSlot(editPlayerData.value.id); } 
-                    else { saveState(); showSlotSwapModal.value = false; showNotif('Player registered successfully!'); }
+                    if (targetSlotType.value === 'starter' || targetSlotType.value === 'sub') { 
+                        assignPlayerToSlot(editPlayerData.value.id); 
+                    } else { 
+                        saveState(); 
+                        showSlotSwapModal.value = false; 
+                        showNotif('Player saved successfully!'); 
+                        if (currentTab.value === 'stats') updateRadarChart();
+                    }
                 };
 
                 let radarChartInst = null;
@@ -846,7 +860,7 @@
                     selectedFormation, selectedTeamPlaystyle, onSquadSwitch, saveState,
                     matchForm, matchHistory, saveMatch, toggleMOTM,
                     showSquadManager, newSquadName, openSquadManager, createNewSquad, deleteSquad,
-                    showSlotSwapModal, slotModalTab, targetSlotType, targetSlotIndex, playerSearchQuery, editPlayerData, filteredRegistry, openSlotSwapModal, assignPlayerToSlot, savePlayerDetails,
+                    showSlotSwapModal, slotModalTab, targetSlotType, targetSlotIndex, playerSearchQuery, editPlayerData, filteredRegistry, openSlotSwapModal, assignPlayerToSlot, editPlayerFromRegistry, savePlayerDetails,
                     masterRegistry, sortedRegistry, radarPlayer1, radarPlayer2, updateRadarChart, initCharts,
                     exportData, importData, factoryReset
                 };
